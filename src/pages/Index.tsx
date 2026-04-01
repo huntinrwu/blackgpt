@@ -1,15 +1,25 @@
 import { useState, useRef, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
-
-type Msg = { role: "user" | "assistant"; content: string };
+import ConversationSidebar from "@/components/ConversationSidebar";
+import { useConversations, Msg } from "@/hooks/useConversations";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blackgpt-chat`;
 
 const Index = () => {
-  const [messages, setMessages] = useState<Msg[]>([]);
+  const {
+    conversations,
+    activeId,
+    messages,
+    setMessages,
+    setActiveId,
+    createConversation,
+    deleteConversation,
+    ensureConversation,
+  } = useConversations();
+
   const [isLoading, setIsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -17,6 +27,7 @@ const Index = () => {
   }, [messages]);
 
   const send = async (input: string) => {
+    const convId = ensureConversation();
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
     setMessages(allMessages);
@@ -65,14 +76,15 @@ const Index = () => {
             const content = parsed.choices?.[0]?.delta?.content;
             if (content) {
               assistantSoFar += content;
+              const snapshot = assistantSoFar;
               setMessages((prev) => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant") {
                   return prev.map((m, i) =>
-                    i === prev.length - 1 ? { ...m, content: assistantSoFar } : m
+                    i === prev.length - 1 ? { ...m, content: snapshot } : m
                   );
                 }
-                return [...prev, { role: "assistant", content: assistantSoFar }];
+                return [...prev, { role: "assistant", content: snapshot }];
               });
             }
           } catch {
@@ -93,49 +105,61 @@ const Index = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Header */}
-      <header className="flex items-center justify-center py-5 border-b border-border bg-card">
-        <h1 className="text-2xl font-bold font-display">
-          <span className="text-gradient-gold">Black</span>
-          <span className="text-foreground">GPT</span>
-          <span className="text-muted-foreground text-sm font-normal ml-2">v1.0</span>
-        </h1>
-      </header>
+    <div className="flex h-screen bg-background">
+      <ConversationSidebar
+        conversations={conversations}
+        activeId={activeId}
+        onSelect={setActiveId}
+        onNew={createConversation}
+        onDelete={deleteConversation}
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen((p) => !p)}
+      />
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl mx-auto w-full">
-        {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center gap-3">
-            <div className="text-5xl">🔥</div>
-            <h2 className="text-xl font-bold font-display text-gradient-gold">
-              Wassup, what you need?
-            </h2>
-            <p className="text-muted-foreground text-sm max-w-md">
-              Ask me anything and I'll put you on game, no cap. Straight talk, hood certified. 💯
-            </p>
-          </div>
-        )}
-        {messages.map((msg, i) => (
-          <ChatMessage key={i} role={msg.role} content={msg.content} />
-        ))}
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-          <div className="flex justify-start mb-4">
-            <div className="bg-secondary rounded-2xl rounded-bl-sm px-4 py-3">
-              <div className="flex gap-1">
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold" />
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.2s]" />
-                <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.4s]" />
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Header */}
+        <header className="flex items-center justify-center py-5 border-b border-border bg-card">
+          <h1 className="text-2xl font-bold font-display">
+            <span className="text-gradient-gold">Black</span>
+            <span className="text-foreground">GPT</span>
+            <span className="text-muted-foreground text-sm font-normal ml-2">v1.0</span>
+          </h1>
+        </header>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl mx-auto w-full">
+          {messages.length === 0 && (
+            <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+              <div className="text-5xl">🔥</div>
+              <h2 className="text-xl font-bold font-display text-gradient-gold">
+                Wassup, what you need?
+              </h2>
+              <p className="text-muted-foreground text-sm max-w-md">
+                Ask me anything and I'll put you on game, no cap. Straight talk, hood certified. 💯
+              </p>
+            </div>
+          )}
+          {messages.map((msg, i) => (
+            <ChatMessage key={i} role={msg.role} content={msg.content} />
+          ))}
+          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+            <div className="flex justify-start mb-4">
+              <div className="bg-secondary rounded-2xl rounded-bl-sm px-4 py-3">
+                <div className="flex gap-1">
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold" />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.2s]" />
+                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.4s]" />
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
 
-      {/* Input */}
-      <div className="max-w-3xl mx-auto w-full">
-        <ChatInput onSend={send} disabled={isLoading} />
+        {/* Input */}
+        <div className="max-w-3xl mx-auto w-full">
+          <ChatInput onSend={send} disabled={isLoading} />
+        </div>
       </div>
     </div>
   );
