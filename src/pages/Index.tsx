@@ -20,8 +20,14 @@ const Index = () => {
   } = useConversations();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // Auto-close sidebar on mobile when switching conversations
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [activeId, isMobile]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

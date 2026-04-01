@@ -46,10 +46,19 @@ const ConversationSidebar = ({
         </button>
       )}
 
+      {/* Overlay for mobile */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          onClick={onToggle}
+        />
+      )}
+
       {/* Sidebar */}
       <div
         className={cn(
           "h-screen flex flex-col bg-card border-r border-border transition-all duration-300 shrink-0",
+          "fixed md:relative z-50 md:z-auto",
           open ? "w-64" : "w-0 overflow-hidden"
         )}
       >
