@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import ConversationSidebar from "@/components/ConversationSidebar";
-import { useConversations, Msg } from "@/hooks/useConversations";
+import { useConversations, Msg, MsgContent } from "@/hooks/useConversations";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blackgpt-chat`;
@@ -33,7 +33,7 @@ const Index = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async (input: string) => {
+  const send = async (input: MsgContent) => {
     const convId = ensureConversation();
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
