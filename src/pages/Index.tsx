@@ -3,8 +3,6 @@ import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import { useConversations, Msg, MsgContent } from "@/hooks/useConversations";
-import ConversationSidebar from "@/components/ConversationSidebar";
-import { useConversations, Msg } from "@/hooks/useConversations";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blackgpt-chat`;
