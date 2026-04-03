@@ -1,4 +1,5 @@
-import { Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft, LogIn, LogOut } from "lucide-react";
+import { useState } from "react";
+import { Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft, LogIn, LogOut, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Conversation } from "@/hooks/useConversations";
@@ -11,6 +12,7 @@ interface ConversationSidebarProps {
   onSelect: (id: string) => void;
   onNew: () => void;
   onDelete: (id: string) => void;
+  onClearAll: () => void;
   open: boolean;
   onToggle: () => void;
   user?: User | null;
