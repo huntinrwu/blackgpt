@@ -28,9 +28,51 @@ serve(async (req) => {
   }
 
   try {
-    const { messages } = await req.json();
+    const body = await req.json();
+    const { messages, action } = body;
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Title generation (non-streaming)
+    if (action === "generate_title") {
+      const titleResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            {
+              role: "system",
+              content: `You generate short, creative, hood-style conversation titles (2-5 words max). Think of how ChatGPT or Gemini name conversations, but make it hood/street certified. Use AAVE slang, be creative and funny. Examples: "Finna Debug This Jawn", "Tax Season Got Me Stressed", "Coding Up A Lick", "Recipe Went Crazy Fr", "That Math Ain't Mathin", "Drip Check on the Resume", "Tryna Get This Bread". Just respond with the title only, no quotes, no explanation.`,
+            },
+            {
+              role: "user",
+              content: `Generate a short hood-style title for a conversation that starts with this message: "${
+                typeof messages[0]?.content === "string"
+                  ? messages[0].content.slice(0, 200)
+                  : "[image message]"
+              }"`,
+            },
+          ],
+          stream: false,
+        }),
+      });
+
+      if (!titleResp.ok) {
+        return new Response(JSON.stringify({ title: "New Chat 💬" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const titleData = await titleResp.json();
+      const title = titleData.choices?.[0]?.message?.content?.trim() || "New Chat 💬";
+      return new Response(JSON.stringify({ title }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

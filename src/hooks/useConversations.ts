@@ -34,11 +34,11 @@ function getTextContent(content: MsgContent): string {
   return textPart ? (textPart as { type: "text"; text: string }).text : "";
 }
 
-function generateTitle(messages: Msg[]): string {
+function generateFallbackTitle(messages: Msg[]): string {
   const first = messages.find((m) => m.role === "user");
   if (!first) return "New Chat";
   const raw = getTextContent(first.content);
-  if (!raw) return "Image Chat";
+  if (!raw) return "Image Chat 📸";
   const text = raw.slice(0, 40);
   return text.length < raw.length ? text + "…" : text;
 }
