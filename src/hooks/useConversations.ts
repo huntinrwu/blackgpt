@@ -1,4 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export type MsgContent =
   | string
@@ -15,7 +17,7 @@ export interface Conversation {
 
 const STORAGE_KEY = "blackgpt-conversations";
 
-function loadConversations(): Conversation[] {
+function loadLocal(): Conversation[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -24,7 +26,7 @@ function loadConversations(): Conversation[] {
   }
 }
 
-function saveConversations(convos: Conversation[]) {
+function saveLocal(convos: Conversation[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(convos));
 }
 
@@ -44,15 +46,51 @@ function generateFallbackTitle(messages: Msg[]): string {
 }
 
 export function useConversations() {
-  const [conversations, setConversations] = useState<Conversation[]>(loadConversations);
-  const [activeId, setActiveId] = useState<string | null>(() => {
-    const convos = loadConversations();
-    return convos.length > 0 ? convos[0].id : null;
-  });
+  const { user } = useAuth();
+  const isCloud = !!user;
 
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const migrationDone = useRef(false);
+
+  // Load conversations on mount or auth change
   useEffect(() => {
-    saveConversations(conversations);
-  }, [conversations]);
+    setLoaded(false);
+    if (isCloud) {
+      loadCloudConversations().then((convos) => {
+        setConversations(convos);
+        setActiveId(convos.length > 0 ? convos[0].id : null);
+        setLoaded(true);
+
+        // Migrate localStorage chats on first login
+        if (!migrationDone.current) {
+          migrationDone.current = true;
+          const localConvos = loadLocal();
+          if (localConvos.length > 0) {
+            migrateLocalToCloud(localConvos, user!.id).then((migrated) => {
+              if (migrated.length > 0) {
+                setConversations((prev) => [...migrated, ...prev]);
+                localStorage.removeItem(STORAGE_KEY);
+              }
+            });
+          }
+        }
+      });
+    } else {
+      const local = loadLocal();
+      setConversations(local);
+      setActiveId(local.length > 0 ? local[0].id : null);
+      setLoaded(true);
+    }
+  }, [isCloud, user?.id]);
+
+  // Save to localStorage for guests
+  useEffect(() => {
+    if (!isCloud && loaded) {
+      saveLocal(conversations);
+    }
+  }, [conversations, isCloud, loaded]);
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null;
   const messages = activeConversation?.messages ?? [];
@@ -67,7 +105,7 @@ export function useConversations() {
           return {
             ...c,
             messages: newMsgs,
-            title: generateFallbackTitle(newMsgs),
+            title: c.title === "New Chat" ? generateFallbackTitle(newMsgs) : c.title,
             updatedAt: Date.now(),
           };
         });
@@ -76,7 +114,40 @@ export function useConversations() {
     [activeId]
   );
 
-  const createConversation = useCallback(() => {
+  // Persist messages to cloud after streaming completes
+  const persistMessages = useCallback(
+    async (convoId: string, msgs: Msg[], title?: string) => {
+      if (!isCloud) return;
+
+      // Update conversation title if provided
+      if (title) {
+        await supabase
+          .from("conversations")
+          .update({ title, updated_at: new Date().toISOString() })
+          .eq("id", convoId);
+      } else {
+        await supabase
+          .from("conversations")
+          .update({ updated_at: new Date().toISOString() })
+          .eq("id", convoId);
+      }
+
+      // Delete existing messages and re-insert (simpler than diffing)
+      await supabase.from("messages").delete().eq("conversation_id", convoId);
+      if (msgs.length > 0) {
+        const rows = msgs.map((m, i) => ({
+          conversation_id: convoId,
+          role: m.role,
+          content: m.content as any,
+          created_at: new Date(Date.now() + i).toISOString(),
+        }));
+        await supabase.from("messages").insert(rows);
+      }
+    },
+    [isCloud]
+  );
+
+  const createConversation = useCallback(async () => {
     const id = crypto.randomUUID();
     const newConvo: Conversation = {
       id,
@@ -84,13 +155,28 @@ export function useConversations() {
       messages: [],
       updatedAt: Date.now(),
     };
+
+    if (isCloud && user) {
+      const { data } = await supabase
+        .from("conversations")
+        .insert({ id, user_id: user.id, title: "New Chat" })
+        .select("id")
+        .single();
+      if (data) {
+        newConvo.id = data.id;
+      }
+    }
+
     setConversations((prev) => [newConvo, ...prev]);
-    setActiveId(id);
-    return id;
-  }, []);
+    setActiveId(newConvo.id);
+    return newConvo.id;
+  }, [isCloud, user]);
 
   const deleteConversation = useCallback(
-    (id: string) => {
+    async (id: string) => {
+      if (isCloud) {
+        await supabase.from("conversations").delete().eq("id", id);
+      }
       setConversations((prev) => {
         const next = prev.filter((c) => c.id !== id);
         if (activeId === id) {
@@ -99,10 +185,10 @@ export function useConversations() {
         return next;
       });
     },
-    [activeId]
+    [activeId, isCloud]
   );
 
-  const ensureConversation = useCallback(() => {
+  const ensureConversation = useCallback(async () => {
     if (!activeId) {
       return createConversation();
     }
@@ -110,12 +196,15 @@ export function useConversations() {
   }, [activeId, createConversation]);
 
   const setTitle = useCallback(
-    (id: string, title: string) => {
+    async (id: string, title: string) => {
       setConversations((prev) =>
         prev.map((c) => (c.id === id ? { ...c, title } : c))
       );
+      if (isCloud) {
+        await supabase.from("conversations").update({ title }).eq("id", id);
+      }
     },
-    []
+    [isCloud]
   );
 
   const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
@@ -130,5 +219,67 @@ export function useConversations() {
     deleteConversation,
     ensureConversation,
     setTitle,
+    persistMessages,
+    isCloud,
   };
+}
+
+// ---------- Cloud helpers ----------
+
+async function loadCloudConversations(): Promise<Conversation[]> {
+  const { data: convos } = await supabase
+    .from("conversations")
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (!convos || convos.length === 0) return [];
+
+  const ids = convos.map((c) => c.id);
+  const { data: msgs } = await supabase
+    .from("messages")
+    .select("*")
+    .in("conversation_id", ids)
+    .order("created_at", { ascending: true });
+
+  const msgMap = new Map<string, Msg[]>();
+  for (const m of msgs || []) {
+    const list = msgMap.get(m.conversation_id) || [];
+    list.push({ role: m.role as "user" | "assistant", content: m.content as MsgContent });
+    msgMap.set(m.conversation_id, list);
+  }
+
+  return convos.map((c) => ({
+    id: c.id,
+    title: c.title,
+    messages: msgMap.get(c.id) || [],
+    updatedAt: new Date(c.updated_at).getTime(),
+  }));
+}
+
+async function migrateLocalToCloud(convos: Conversation[], userId: string): Promise<Conversation[]> {
+  const migrated: Conversation[] = [];
+  for (const convo of convos) {
+    if (convo.messages.length === 0) continue;
+    const { data } = await supabase
+      .from("conversations")
+      .insert({
+        user_id: userId,
+        title: convo.title,
+        updated_at: new Date(convo.updatedAt).toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (data) {
+      const rows = convo.messages.map((m, i) => ({
+        conversation_id: data.id,
+        role: m.role,
+        content: m.content as any,
+        created_at: new Date(convo.updatedAt - convo.messages.length + i).toISOString(),
+      }));
+      await supabase.from("messages").insert(rows);
+      migrated.push({ ...convo, id: data.id });
+    }
+  }
+  return migrated;
 }

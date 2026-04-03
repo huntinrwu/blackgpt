@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import ConversationSidebar from "@/components/ConversationSidebar";
 import { useConversations, Msg, MsgContent } from "@/hooks/useConversations";
+import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { LogIn, LogOut, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blackgpt-chat`;
 
@@ -18,14 +22,18 @@ const Index = () => {
     deleteConversation,
     ensureConversation,
     setTitle,
+    persistMessages,
+    isCloud,
   } = useConversations();
+
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(false);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // Auto-close sidebar on mobile when switching conversations
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
   }, [activeId, isMobile]);
@@ -35,7 +43,7 @@ const Index = () => {
   }, [messages]);
 
   const send = async (input: MsgContent) => {
-    const convId = ensureConversation();
+    const convId = await ensureConversation();
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
     const isFirstMessage = messages.length === 0;
@@ -102,6 +110,13 @@ const Index = () => {
           }
         }
       }
+
+      // Persist final messages to cloud
+      const finalMessages = [
+        ...allMessages,
+        ...(assistantSoFar ? [{ role: "assistant" as const, content: assistantSoFar }] : []),
+      ];
+      await persistMessages(convId, finalMessages);
     } catch (e) {
       console.error(e);
       setMessages((prev) => [
@@ -133,26 +148,62 @@ const Index = () => {
     }
   };
 
+  const handleNewChat = async () => {
+    await createConversation();
+  };
+
   return (
     <div className="flex h-screen bg-background">
       <ConversationSidebar
         conversations={conversations}
         activeId={activeId}
         onSelect={setActiveId}
-        onNew={createConversation}
+        onNew={handleNewChat}
         onDelete={deleteConversation}
         open={sidebarOpen}
         onToggle={() => setSidebarOpen((p) => !p)}
+        user={user}
+        onLogin={() => navigate("/auth")}
+        onLogout={signOut}
       />
 
       <div className="flex flex-col flex-1 min-w-0">
         {/* Header */}
-        <header className="flex items-center justify-center py-5 border-b border-border bg-card">
+        <header className="flex items-center justify-between py-5 px-4 border-b border-border bg-card">
+          <div className="flex-1" />
           <h1 className="text-2xl font-bold font-display">
             <span className="text-gradient-gold">Black</span>
             <span className="text-foreground">GPT</span>
             <span className="text-muted-foreground text-sm font-normal ml-2">v1.0</span>
           </h1>
+          <div className="flex-1 flex justify-end">
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[120px]">
+                  {user.email}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={signOut}
+                  title="Sign out"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground hover:text-primary gap-1.5"
+                onClick={() => navigate("/auth")}
+              >
+                <LogIn className="h-4 w-4" />
+                <span className="hidden sm:inline">Sign In</span>
+              </Button>
+            )}
+          </div>
         </header>
 
         {/* Messages */}
@@ -166,6 +217,14 @@ const Index = () => {
               <p className="text-muted-foreground text-sm max-w-md">
                 Ask me anything and I'll put you on game, no cap. Straight talk, hood certified. 💯
               </p>
+              {!user && (
+                <button
+                  onClick={() => navigate("/auth")}
+                  className="mt-2 text-xs text-primary hover:underline"
+                >
+                  Sign in to sync chats across devices 🔄
+                </button>
+              )}
             </div>
           )}
           {messages.map((msg, i) => (

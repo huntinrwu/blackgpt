@@ -1,8 +1,9 @@
-import { Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Conversation } from "@/hooks/useConversations";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { User } from "@supabase/supabase-js";
 
 interface ConversationSidebarProps {
   conversations: Conversation[];
@@ -12,6 +13,9 @@ interface ConversationSidebarProps {
   onDelete: (id: string) => void;
   open: boolean;
   onToggle: () => void;
+  user?: User | null;
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
 function timeAgo(ts: number): string {
@@ -33,6 +37,9 @@ const ConversationSidebar = ({
   onDelete,
   open,
   onToggle,
+  user,
+  onLogin,
+  onLogout,
 }: ConversationSidebarProps) => {
   return (
     <>
@@ -126,6 +133,26 @@ const ConversationSidebar = ({
             ))}
           </div>
         </ScrollArea>
+        {/* Auth section */}
+        <div className="p-3 border-t border-border">
+          {user ? (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="truncate">{user.email}</span>
+            </button>
+          ) : (
+            <button
+              onClick={onLogin}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-primary hover:bg-secondary/50 transition-colors"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in to sync chats
+            </button>
+          )}
+        </div>
       </div>
     </>
   );
