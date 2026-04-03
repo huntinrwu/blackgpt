@@ -30,6 +30,48 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const { messages, action } = body;
+
+    // Input validation
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return new Response(
+        JSON.stringify({ error: "Messages array is required and must not be empty." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    if (messages.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Too many messages. Max 100 per request." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    for (const msg of messages) {
+      if (!msg.role || !["user", "assistant", "system"].includes(msg.role)) {
+        return new Response(
+          JSON.stringify({ error: "Each message must have a valid role (user, assistant, system)." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!msg.content) {
+        return new Response(
+          JSON.stringify({ error: "Each message must have content." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      // Check text content size (max ~32KB per message)
+      if (typeof msg.content === "string" && msg.content.length > 32768) {
+        return new Response(
+          JSON.stringify({ error: "Message content too long. Max 32KB per message." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    if (action && !["generate_title"].includes(action)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid action." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
