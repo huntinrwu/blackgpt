@@ -207,6 +207,17 @@ export function useConversations() {
     [isCloud]
   );
 
+  const clearAll = useCallback(async () => {
+    if (isCloud && user) {
+      // Delete all user's conversations (messages cascade)
+      await supabase.from("conversations").delete().eq("user_id", user.id);
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    setConversations([]);
+    setActiveId(null);
+  }, [isCloud, user]);
+
   const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
 
   return {
@@ -221,6 +232,7 @@ export function useConversations() {
     setTitle,
     persistMessages,
     isCloud,
+    clearAll,
   };
 }
 
