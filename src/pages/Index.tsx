@@ -24,6 +24,7 @@ const Index = () => {
     setTitle,
     persistMessages,
     isCloud,
+    clearAll,
   } = useConversations();
 
   const { user, signOut } = useAuth();
