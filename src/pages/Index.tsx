@@ -38,6 +38,7 @@ const Index = () => {
     const convId = ensureConversation();
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
+    const isFirstMessage = messages.length === 0;
     setMessages(allMessages);
     setIsLoading(true);
 
