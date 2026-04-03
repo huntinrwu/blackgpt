@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { useState, useCallback } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, RefreshCw } from "lucide-react";
 import type { MsgContent } from "@/hooks/useConversations";
 
 function CopyCodeBlock({ children, className }: { children: string; className?: string }) {
@@ -40,6 +40,8 @@ function CopyCodeBlock({ children, className }: { children: string; className?: 
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: MsgContent;
+  onRegenerate?: () => void;
+  isLast?: boolean;
 }
 
 function extractText(content: MsgContent): string {
@@ -57,66 +59,96 @@ function extractImages(content: MsgContent): string[] {
     .map((p) => (p as { type: "image_url"; image_url: { url: string } }).image_url.url);
 }
 
-const ChatMessage = ({ role, content }: ChatMessageProps) => {
+const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) => {
   const isUser = role === "user";
   const text = extractText(content);
   const images = extractImages(content);
+  const [copied, setCopied] = useState(false);
 
-  // Check if assistant response contains base64 images
-  const assistantImages: string[] = [];
-  if (!isUser && typeof content === "string") {
-    // Images will be handled via markdown img tags
-  }
+  const handleCopyText = useCallback(() => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [text]);
 
   return (
-    <div className={cn("flex w-full mb-4", isUser ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed",
-          isUser
-            ? "bg-primary text-primary-foreground rounded-br-sm"
-            : "bg-secondary text-secondary-foreground rounded-bl-sm"
-        )}
-      >
-        {/* User-attached images */}
-        {images.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-2">
-            {images.map((src, i) => (
-              <img
-                key={i}
-                src={src}
-                alt="shared"
-                className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Text content */}
-        {text && (
-          isUser ? (
-            <p className="whitespace-pre-wrap">{text}</p>
-          ) : (
-            <div className="prose prose-sm prose-invert max-w-none [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:bg-background/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_code]:text-primary [&_a]:text-primary [&_a]:underline">
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                components={{
-                  code({ className, children, ...props }) {
-                    const isBlock = className?.startsWith("language-") || String(children).includes("\n");
-                    if (isBlock) {
-                      return <CopyCodeBlock className={className}>{String(children).replace(/\n$/, "")}</CopyCodeBlock>;
-                    }
-                    return <code className={className} {...props}>{children}</code>;
-                  },
-                  pre({ children }) {
-                    return <>{children}</>;
-                  },
-                }}
-              >
-                {text}
-              </ReactMarkdown>
+    <div className={cn("flex w-full mb-4 group/msg", isUser ? "justify-end" : "justify-start")}>
+      <div className="flex flex-col max-w-[80%]">
+        <div
+          className={cn(
+            "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+            isUser
+              ? "bg-primary text-primary-foreground rounded-br-sm"
+              : "bg-secondary text-secondary-foreground rounded-bl-sm"
+          )}
+        >
+          {/* User-attached images */}
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt="shared"
+                  className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
+                />
+              ))}
             </div>
-          )
+          )}
+
+          {/* Text content */}
+          {text && (
+            isUser ? (
+              <p className="whitespace-pre-wrap">{text}</p>
+            ) : (
+              <div className="prose prose-sm prose-invert max-w-none [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:bg-background/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_code]:text-primary [&_a]:text-primary [&_a]:underline">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    code({ className, children, ...props }) {
+                      const isBlock = className?.startsWith("language-") || String(children).includes("\n");
+                      if (isBlock) {
+                        return <CopyCodeBlock className={className}>{String(children).replace(/\n$/, "")}</CopyCodeBlock>;
+                      }
+                      return <code className={className} {...props}>{children}</code>;
+                    },
+                    pre({ children }) {
+                      return <>{children}</>;
+                    },
+                  }}
+                >
+                  {text}
+                </ReactMarkdown>
+              </div>
+            )
+          )}
+        </div>
+
+        {/* Action buttons */}
+        {text && (
+          <div className={cn(
+            "flex gap-1 mt-1 opacity-0 group-hover/msg:opacity-100 transition-opacity",
+            isUser ? "justify-end" : "justify-start"
+          )}>
+            <button
+              onClick={handleCopyText}
+              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              aria-label="Copy message"
+              title="Copy text"
+            >
+              {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+            </button>
+            {!isUser && isLast && onRegenerate && (
+              <button
+                onClick={onRegenerate}
+                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                aria-label="Regenerate response"
+                title="Regenerate"
+              >
+                <RefreshCw size={14} />
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
