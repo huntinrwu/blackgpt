@@ -37,12 +37,14 @@ const ConversationSidebar = ({
   onSelect,
   onNew,
   onDelete,
+  onClearAll,
   open,
   onToggle,
   user,
   onLogin,
   onLogout,
 }: ConversationSidebarProps) => {
+  const [confirmClear, setConfirmClear] = useState(false);
   return (
     <>
       {/* Collapsed toggle */}
