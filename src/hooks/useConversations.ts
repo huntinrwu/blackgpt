@@ -67,7 +67,7 @@ export function useConversations() {
           return {
             ...c,
             messages: newMsgs,
-            title: generateTitle(newMsgs),
+            title: generateFallbackTitle(newMsgs),
             updatedAt: Date.now(),
           };
         });
