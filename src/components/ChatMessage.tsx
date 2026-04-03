@@ -1,7 +1,41 @@
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useState, useCallback } from "react";
+import { Copy, Check } from "lucide-react";
 import type { MsgContent } from "@/hooks/useConversations";
+
+function CopyCodeBlock({ children, className }: { children: string; className?: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(children);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [children]);
+
+  const lang = className?.replace("language-", "") || "";
+
+  return (
+    <div className="relative group my-2">
+      {lang && (
+        <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 pt-2 pb-0 bg-background/50 rounded-t-lg border-b border-border/30">
+          {lang}
+        </div>
+      )}
+      <pre className={cn("bg-background/50 rounded-lg p-3 overflow-x-auto", lang && "rounded-t-none")}>
+        <code className={className}>{children}</code>
+      </pre>
+      <button
+        onClick={handleCopy}
+        className="absolute top-2 right-2 p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-label="Copy code"
+      >
+        {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+      </button>
+    </div>
+  );
+}
 
 interface ChatMessageProps {
   role: "user" | "assistant";
