@@ -35,7 +35,7 @@ const Index = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const send = async (input: string) => {
+  const send = async (input: MsgContent) => {
     const convId = ensureConversation();
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
