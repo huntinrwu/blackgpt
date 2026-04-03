@@ -17,6 +17,7 @@ const Index = () => {
     createConversation,
     deleteConversation,
     ensureConversation,
+    setTitle,
   } = useConversations();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -37,6 +38,7 @@ const Index = () => {
     const convId = ensureConversation();
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
+    const isFirstMessage = messages.length === 0;
     setMessages(allMessages);
     setIsLoading(true);
 
@@ -108,6 +110,26 @@ const Index = () => {
       ]);
     } finally {
       setIsLoading(false);
+    }
+
+    // Generate a creative hood title after the first exchange
+    if (isFirstMessage) {
+      try {
+        const titleResp = await fetch(CHAT_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ messages: allMessages, action: "generate_title" }),
+        });
+        if (titleResp.ok) {
+          const { title } = await titleResp.json();
+          if (title) setTitle(convId, title);
+        }
+      } catch {
+        // fallback title already set
+      }
     }
   };
 

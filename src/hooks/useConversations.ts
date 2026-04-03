@@ -34,11 +34,11 @@ function getTextContent(content: MsgContent): string {
   return textPart ? (textPart as { type: "text"; text: string }).text : "";
 }
 
-function generateTitle(messages: Msg[]): string {
+function generateFallbackTitle(messages: Msg[]): string {
   const first = messages.find((m) => m.role === "user");
   if (!first) return "New Chat";
   const raw = getTextContent(first.content);
-  if (!raw) return "Image Chat";
+  if (!raw) return "Image Chat 📸";
   const text = raw.slice(0, 40);
   return text.length < raw.length ? text + "…" : text;
 }
@@ -67,7 +67,7 @@ export function useConversations() {
           return {
             ...c,
             messages: newMsgs,
-            title: generateTitle(newMsgs),
+            title: generateFallbackTitle(newMsgs),
             updatedAt: Date.now(),
           };
         });
@@ -109,6 +109,15 @@ export function useConversations() {
     return activeId;
   }, [activeId, createConversation]);
 
+  const setTitle = useCallback(
+    (id: string, title: string) => {
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title } : c))
+      );
+    },
+    []
+  );
+
   const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
 
   return {
@@ -120,5 +129,6 @@ export function useConversations() {
     createConversation,
     deleteConversation,
     ensureConversation,
+    setTitle,
   };
 }
