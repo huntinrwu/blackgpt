@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
 
-export type Msg = { role: "user" | "assistant"; content: string };
+export type MsgContent =
+  | string
+  | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }>;
+
+export type Msg = { role: "user" | "assistant"; content: MsgContent };
 
 export interface Conversation {
   id: string;
