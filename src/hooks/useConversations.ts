@@ -28,11 +28,19 @@ function saveConversations(convos: Conversation[]) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(convos));
 }
 
+function getTextContent(content: MsgContent): string {
+  if (typeof content === "string") return content;
+  const textPart = content.find((p) => p.type === "text");
+  return textPart ? (textPart as { type: "text"; text: string }).text : "";
+}
+
 function generateTitle(messages: Msg[]): string {
   const first = messages.find((m) => m.role === "user");
   if (!first) return "New Chat";
-  const text = first.content.slice(0, 40);
-  return text.length < first.content.length ? text + "…" : text;
+  const raw = getTextContent(first.content);
+  if (!raw) return "Image Chat";
+  const text = raw.slice(0, 40);
+  return text.length < raw.length ? text + "…" : text;
 }
 
 export function useConversations() {
