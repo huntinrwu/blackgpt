@@ -17,6 +17,7 @@ const Index = () => {
     createConversation,
     deleteConversation,
     ensureConversation,
+    setTitle,
   } = useConversations();
 
   const [isLoading, setIsLoading] = useState(false);
