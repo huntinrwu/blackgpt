@@ -109,6 +109,15 @@ export function useConversations() {
     return activeId;
   }, [activeId, createConversation]);
 
+  const setTitle = useCallback(
+    (id: string, title: string) => {
+      setConversations((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, title } : c))
+      );
+    },
+    []
+  );
+
   const sortedConversations = [...conversations].sort((a, b) => b.updatedAt - a.updatedAt);
 
   return {
@@ -120,5 +129,6 @@ export function useConversations() {
     createConversation,
     deleteConversation,
     ensureConversation,
+    setTitle,
   };
 }
