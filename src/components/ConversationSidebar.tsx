@@ -37,6 +37,9 @@ const ConversationSidebar = ({
   onDelete,
   open,
   onToggle,
+  user,
+  onLogin,
+  onLogout,
 }: ConversationSidebarProps) => {
   return (
     <>
