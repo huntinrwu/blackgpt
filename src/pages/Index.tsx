@@ -24,6 +24,7 @@ const Index = () => {
     setTitle,
     persistMessages,
     isCloud,
+    clearAll,
   } = useConversations();
 
   const { user, signOut } = useAuth();
@@ -160,6 +161,7 @@ const Index = () => {
         onSelect={setActiveId}
         onNew={handleNewChat}
         onDelete={deleteConversation}
+        onClearAll={clearAll}
         open={sidebarOpen}
         onToggle={() => setSidebarOpen((p) => !p)}
         user={user}
