@@ -230,7 +230,13 @@ const Index = () => {
             </div>
           )}
           {messages.map((msg, i) => (
-            <ChatMessage key={i} role={msg.role} content={msg.content} />
+            <ChatMessage
+              key={i}
+              role={msg.role}
+              content={msg.content}
+              isLast={i === messages.length - 1}
+              onRegenerate={msg.role === "assistant" ? () => handleRegenerate() : undefined}
+            />
           ))}
           {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
             <div className="flex justify-start mb-4">
