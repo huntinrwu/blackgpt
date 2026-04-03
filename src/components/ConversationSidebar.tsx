@@ -1,8 +1,9 @@
-import { Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Plus, MessageSquare, Trash2, PanelLeftClose, PanelLeft, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Conversation } from "@/hooks/useConversations";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import type { User } from "@supabase/supabase-js";
 
 interface ConversationSidebarProps {
   conversations: Conversation[];
@@ -12,6 +13,9 @@ interface ConversationSidebarProps {
   onDelete: (id: string) => void;
   open: boolean;
   onToggle: () => void;
+  user?: User | null;
+  onLogin?: () => void;
+  onLogout?: () => void;
 }
 
 function timeAgo(ts: number): string {
