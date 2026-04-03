@@ -133,6 +133,26 @@ const ConversationSidebar = ({
             ))}
           </div>
         </ScrollArea>
+        {/* Auth section */}
+        <div className="p-3 border-t border-border">
+          {user ? (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="truncate">{user.email}</span>
+            </button>
+          ) : (
+            <button
+              onClick={onLogin}
+              className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-primary hover:bg-secondary/50 transition-colors"
+            >
+              <LogIn className="h-4 w-4" />
+              Sign in to sync chats
+            </button>
+          )}
+        </div>
       </div>
     </>
   );
