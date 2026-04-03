@@ -98,7 +98,23 @@ const ChatMessage = ({ role, content }: ChatMessageProps) => {
             <p className="whitespace-pre-wrap">{text}</p>
           ) : (
             <div className="prose prose-sm prose-invert max-w-none [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:bg-background/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_code]:text-primary [&_a]:text-primary [&_a]:underline">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  code({ className, children, ...props }) {
+                    const isBlock = className?.startsWith("language-") || String(children).includes("\n");
+                    if (isBlock) {
+                      return <CopyCodeBlock className={className}>{String(children).replace(/\n$/, "")}</CopyCodeBlock>;
+                    }
+                    return <code className={className} {...props}>{children}</code>;
+                  },
+                  pre({ children }) {
+                    return <>{children}</>;
+                  },
+                }}
+              >
+                {text}
+              </ReactMarkdown>
             </div>
           )
         )}
