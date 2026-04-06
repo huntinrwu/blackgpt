@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Paperclip, FileText, X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import WebcamCapture from "@/components/WebcamCapture";
 import type { MsgContent } from "@/hooks/useConversations";
 
 interface ChatInputProps {
