@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, ImagePlus, FileText, X } from "lucide-react";
+import { Send, Paperclip, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MsgContent } from "@/hooks/useConversations";
 
