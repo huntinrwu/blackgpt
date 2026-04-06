@@ -175,6 +175,16 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           onChange={handleFileChange}
         />
 
+        {/* Hidden camera input */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleCameraCapture}
+        />
+
         {/* Upload button */}
         <Button
           variant="ghost"
@@ -186,6 +196,20 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           title="Upload file or image"
         >
           <Paperclip className="h-5 w-5 text-muted-foreground" />
+        </Button>
+
+        {/* Camera button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl h-11 w-11 shrink-0"
+          onClick={() => cameraInputRef.current?.click()}
+          disabled={disabled}
+          type="button"
+          title="Take a photo"
+        >
+          <Camera className="h-5 w-5 text-muted-foreground" />
+        </Button>
         </Button>
 
         <textarea
