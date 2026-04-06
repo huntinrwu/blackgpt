@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, FileText, X } from "lucide-react";
+import { Send, Paperclip, FileText, X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MsgContent } from "@/hooks/useConversations";
 
@@ -43,6 +43,7 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -90,10 +91,7 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
+  const processFiles = async (files: FileList) => {
     for (const file of Array.from(files)) {
       if (file.type.startsWith("image/")) {
         if (file.size > MAX_IMAGE_SIZE) {
@@ -118,8 +116,20 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
         setAttachments((prev) => [...prev, { name: file.name, type: file.type || "application/octet-stream", textContent, file }]);
       }
     }
+  };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    await processFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    await processFiles(files);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const removeAttachment = (index: number) => {
@@ -165,6 +175,16 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           onChange={handleFileChange}
         />
 
+        {/* Hidden camera input */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleCameraCapture}
+        />
+
         {/* Upload button */}
         <Button
           variant="ghost"
@@ -176,6 +196,19 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           title="Upload file or image"
         >
           <Paperclip className="h-5 w-5 text-muted-foreground" />
+        </Button>
+
+        {/* Camera button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-xl h-11 w-11 shrink-0"
+          onClick={() => cameraInputRef.current?.click()}
+          disabled={disabled}
+          type="button"
+          title="Take a photo"
+        >
+          <Camera className="h-5 w-5 text-muted-foreground" />
         </Button>
 
         <textarea
