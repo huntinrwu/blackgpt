@@ -138,12 +138,10 @@ const Index = () => {
     // Generate a creative hood title after the first exchange
     if (isFirstMessage) {
       try {
+        const titleHeaders = await getAuthHeaders();
         const titleResp = await fetch(CHAT_URL, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: titleHeaders,
           body: JSON.stringify({ messages: allMessages, action: "generate_title" }),
         });
         if (titleResp.ok) {
