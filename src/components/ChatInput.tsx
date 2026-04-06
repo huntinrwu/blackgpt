@@ -91,10 +91,7 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
+  const processFiles = async (files: FileList) => {
     for (const file of Array.from(files)) {
       if (file.type.startsWith("image/")) {
         if (file.size > MAX_IMAGE_SIZE) {
@@ -119,8 +116,20 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
         setAttachments((prev) => [...prev, { name: file.name, type: file.type || "application/octet-stream", textContent, file }]);
       }
     }
+  };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    await processFiles(files);
     if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleCameraCapture = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    await processFiles(files);
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
   const removeAttachment = (index: number) => {
