@@ -207,13 +207,23 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           variant="ghost"
           size="icon"
           className="rounded-xl h-11 w-11 shrink-0"
-          onClick={() => cameraInputRef.current?.click()}
+          onClick={() => isMobile ? cameraInputRef.current?.click() : setWebcamOpen(true)}
           disabled={disabled}
           type="button"
           title="Take a photo"
         >
           <Camera className="h-5 w-5 text-muted-foreground" />
         </Button>
+
+        <WebcamCapture
+          open={webcamOpen}
+          onClose={() => setWebcamOpen(false)}
+          onCapture={async (file) => {
+            const fl = new DataTransfer();
+            fl.items.add(file);
+            await processFiles(fl.files);
+          }}
+        />
 
         <textarea
           ref={textareaRef}
