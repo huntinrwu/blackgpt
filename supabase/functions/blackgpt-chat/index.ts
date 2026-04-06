@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -22,12 +23,70 @@ Rules:
 - If a user shares a URL or link, acknowledge it and discuss it based on what they ask.
 - Use markdown formatting in your responses: **bold**, *italic*, lists, code blocks, etc.`;
 
+// Simple in-memory rate limiter (per isolate)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 30; // requests per window
+const RATE_WINDOW_MS = 60_000; // 1 minute
+
+function checkRateLimit(userId: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(userId);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(userId, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
+// Cleanup old entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of rateLimitMap) {
+    if (now > val.resetAt) rateLimitMap.delete(key);
+  }
+}, 60_000);
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // --- Authentication ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Missing authorization. Sign in to use BlackGPT. 🔐" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+
+    // Allow both authenticated users and anon key (guest mode)
+    let userId = "guest";
+    const isGuest = claimsError || !claimsData?.claims?.sub;
+    if (!isGuest) {
+      userId = claimsData.claims.sub as string;
+    }
+
+    // --- Rate Limiting ---
+    if (!checkRateLimit(userId)) {
+      return new Response(
+        JSON.stringify({ error: "Slow down fam, you sendin too many messages. Wait a min. ⏳" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json();
     const { messages, action } = body;
 
@@ -57,7 +116,6 @@ serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      // Check text content size (max ~32KB per message)
       if (typeof msg.content === "string" && msg.content.length > 32768) {
         return new Response(
           JSON.stringify({ error: "Message content too long. Max 32KB per message." }),
@@ -116,6 +174,9 @@ serve(async (req) => {
       });
     }
 
+    // Limit conversation history sent to AI (last 40 messages to control costs)
+    const trimmedMessages = messages.slice(-40);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -126,7 +187,7 @@ serve(async (req) => {
         model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
-          ...messages,
+          ...trimmedMessages,
         ],
         stream: true,
       }),
