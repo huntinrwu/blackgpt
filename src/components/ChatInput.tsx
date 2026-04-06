@@ -10,13 +10,7 @@ interface ChatInputProps {
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-const ACCEPTED_FILE_TYPES = [
-  "image/*",
-  "application/pdf",
-  "text/plain",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
+const ACCEPTED_FILE_TYPES = "image/*,.pdf,.txt,.md,.csv,.doc,.docx";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
