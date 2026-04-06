@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Paperclip, FileText, X, Camera } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Send, Paperclip, FileText, X, Camera, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import WebcamCapture from "@/components/WebcamCapture";
 import type { MsgContent } from "@/hooks/useConversations";
 
