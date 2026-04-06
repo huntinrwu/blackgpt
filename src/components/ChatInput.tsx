@@ -155,25 +155,17 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
       )}
 
       <div className="flex items-end gap-2 p-4">
-        {/* Hidden file inputs */}
+        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept={ACCEPTED_FILE_TYPES}
           multiple
           className="hidden"
-          onChange={handleImageChange}
-        />
-        <input
-          ref={docInputRef}
-          type="file"
-          accept=".pdf,.txt,.md,.csv,.doc,.docx"
-          multiple
-          className="hidden"
-          onChange={handleDocChange}
+          onChange={handleFileChange}
         />
 
-        {/* Image upload button */}
+        {/* Upload button */}
         <Button
           variant="ghost"
           size="icon"
@@ -181,22 +173,9 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
           type="button"
-          title="Upload image"
+          title="Upload file or image"
         >
-          <ImagePlus className="h-5 w-5 text-muted-foreground" />
-        </Button>
-
-        {/* Doc upload button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-xl h-11 w-11 shrink-0"
-          onClick={() => docInputRef.current?.click()}
-          disabled={disabled}
-          type="button"
-          title="Upload file (.pdf, .txt, .doc)"
-        >
-          <FileText className="h-5 w-5 text-muted-foreground" />
+          <Paperclip className="h-5 w-5 text-muted-foreground" />
         </Button>
 
         <textarea
