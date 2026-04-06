@@ -43,6 +43,15 @@ const Index = () => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const getAuthHeaders = async () => {
+    const { data: { session } } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
+    const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    return {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
   const send = async (input: MsgContent) => {
     const convId = await ensureConversation();
     const userMsg: Msg = { role: "user", content: input };
@@ -52,14 +61,12 @@ const Index = () => {
     setIsLoading(true);
 
     let assistantSoFar = "";
+    const headers = await getAuthHeaders();
 
     try {
       const resp = await fetch(CHAT_URL, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
+        headers,
         body: JSON.stringify({ messages: allMessages }),
       });
 
