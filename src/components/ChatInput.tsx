@@ -210,7 +210,6 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
         >
           <Camera className="h-5 w-5 text-muted-foreground" />
         </Button>
-        </Button>
 
         <textarea
           ref={textareaRef}
