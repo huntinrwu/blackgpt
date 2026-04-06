@@ -235,14 +235,33 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
 
         <textarea
           ref={textareaRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
+          value={input + (interimText ? (input ? " " : "") + interimText : "")}
+          onChange={(e) => {
+            // Strip interim text portion when user types
+            setInput(e.target.value);
+          }}
           onKeyDown={handleKeyDown}
-          placeholder="Say somethin... or drop a file 📎"
+          placeholder={isListening ? "Listening... 🎙️" : "Say somethin... or drop a file 📎"}
           disabled={disabled}
           rows={1}
           className="flex-1 resize-none bg-secondary text-foreground rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
         />
+
+        {/* Mic button */}
+        {micSupported && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className={`rounded-xl h-11 w-11 shrink-0 ${isListening ? "text-red-500 animate-pulse" : ""}`}
+            onClick={toggleMic}
+            disabled={disabled}
+            type="button"
+            title={isListening ? "Stop listening" : "Voice input"}
+          >
+            {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5 text-muted-foreground" />}
+          </Button>
+        )}
+
         <Button
           onClick={handleSubmit}
           disabled={(!input.trim() && attachments.length === 0) || disabled}
