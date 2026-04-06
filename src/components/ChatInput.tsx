@@ -50,6 +50,13 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
+  const handleTranscript = useCallback((text: string) => {
+    setInput((prev) => prev + (prev && !prev.endsWith(" ") ? " " : "") + text);
+  }, []);
+
+  const { isListening, interimText, isSupported: micSupported, toggle: toggleMic } =
+    useSpeechRecognition(handleTranscript);
+
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
