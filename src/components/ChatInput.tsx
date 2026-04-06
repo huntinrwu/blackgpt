@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Paperclip, FileText, X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
+import WebcamCapture from "@/components/WebcamCapture";
 import type { MsgContent } from "@/hooks/useConversations";
 
 interface ChatInputProps {
@@ -41,6 +43,8 @@ interface AttachedFile {
 const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
+  const [webcamOpen, setWebcamOpen] = useState(false);
+  const isMobile = useIsMobile();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -203,13 +207,23 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           variant="ghost"
           size="icon"
           className="rounded-xl h-11 w-11 shrink-0"
-          onClick={() => cameraInputRef.current?.click()}
+          onClick={() => isMobile ? cameraInputRef.current?.click() : setWebcamOpen(true)}
           disabled={disabled}
           type="button"
           title="Take a photo"
         >
           <Camera className="h-5 w-5 text-muted-foreground" />
         </Button>
+
+        <WebcamCapture
+          open={webcamOpen}
+          onClose={() => setWebcamOpen(false)}
+          onCapture={async (file) => {
+            const fl = new DataTransfer();
+            fl.items.add(file);
+            await processFiles(fl.files);
+          }}
+        />
 
         <textarea
           ref={textareaRef}
