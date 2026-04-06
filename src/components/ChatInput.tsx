@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, ImagePlus, FileText, X } from "lucide-react";
+import { Send, Paperclip, FileText, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MsgContent } from "@/hooks/useConversations";
 
@@ -10,13 +10,7 @@ interface ChatInputProps {
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-const ACCEPTED_FILE_TYPES = [
-  "image/*",
-  "application/pdf",
-  "text/plain",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
+const ACCEPTED_FILE_TYPES = "image/*,.pdf,.txt,.md,.csv,.doc,.docx";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -49,7 +43,6 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const docInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -97,46 +90,36 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     }
   };
 
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
     for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) continue;
-      if (file.size > MAX_IMAGE_SIZE) {
-        alert("Image too large (max 4MB)");
-        continue;
+      if (file.type.startsWith("image/")) {
+        if (file.size > MAX_IMAGE_SIZE) {
+          alert("Image too large (max 4MB)");
+          continue;
+        }
+        const base64 = await fileToBase64(file);
+        setAttachments((prev) => [...prev, { name: file.name, type: file.type, preview: base64, file }]);
+      } else {
+        if (file.size > MAX_FILE_SIZE) {
+          alert("File too large (max 20MB)");
+          continue;
+        }
+        let textContent = "";
+        if (file.type === "text/plain" || file.name.endsWith(".txt") || file.name.endsWith(".md") || file.name.endsWith(".csv")) {
+          textContent = await readTextFile(file);
+        } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+          textContent = `[PDF file: ${file.name} — PDF text extraction happens server-side. File attached for context.]`;
+        } else {
+          textContent = `[Document: ${file.name} — Content attached for context.]`;
+        }
+        setAttachments((prev) => [...prev, { name: file.name, type: file.type || "application/octet-stream", textContent, file }]);
       }
-      const base64 = await fileToBase64(file);
-      setAttachments((prev) => [...prev, { name: file.name, type: file.type, preview: base64, file }]);
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleDocChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
-
-    for (const file of Array.from(files)) {
-      if (file.size > MAX_FILE_SIZE) {
-        alert("File too large (max 20MB)");
-        continue;
-      }
-
-      let textContent = "";
-      if (file.type === "text/plain" || file.name.endsWith(".txt") || file.name.endsWith(".md") || file.name.endsWith(".csv")) {
-        textContent = await readTextFile(file);
-      } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-        textContent = `[PDF file: ${file.name} — PDF text extraction happens server-side. File attached for context.]`;
-      } else {
-        textContent = `[Document: ${file.name} — Content attached for context.]`;
-      }
-
-      setAttachments((prev) => [...prev, { name: file.name, type: file.type || "application/octet-stream", textContent, file }]);
-    }
-
-    if (docInputRef.current) docInputRef.current.value = "";
   };
 
   const removeAttachment = (index: number) => {
@@ -172,25 +155,17 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
       )}
 
       <div className="flex items-end gap-2 p-4">
-        {/* Hidden file inputs */}
+        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept={ACCEPTED_FILE_TYPES}
           multiple
           className="hidden"
-          onChange={handleImageChange}
-        />
-        <input
-          ref={docInputRef}
-          type="file"
-          accept=".pdf,.txt,.md,.csv,.doc,.docx"
-          multiple
-          className="hidden"
-          onChange={handleDocChange}
+          onChange={handleFileChange}
         />
 
-        {/* Image upload button */}
+        {/* Upload button */}
         <Button
           variant="ghost"
           size="icon"
@@ -198,22 +173,9 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
           type="button"
-          title="Upload image"
+          title="Upload file or image"
         >
-          <ImagePlus className="h-5 w-5 text-muted-foreground" />
-        </Button>
-
-        {/* Doc upload button */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-xl h-11 w-11 shrink-0"
-          onClick={() => docInputRef.current?.click()}
-          disabled={disabled}
-          type="button"
-          title="Upload file (.pdf, .txt, .doc)"
-        >
-          <FileText className="h-5 w-5 text-muted-foreground" />
+          <Paperclip className="h-5 w-5 text-muted-foreground" />
         </Button>
 
         <textarea
