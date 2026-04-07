@@ -10,6 +10,7 @@ import type { MsgContent } from "@/hooks/useConversations";
 interface ChatInputProps {
   onSend: (content: MsgContent, files?: File[]) => void;
   disabled?: boolean;
+  onFileDrop?: (processor: (files: FileList) => Promise<void>) => void;
 }
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
