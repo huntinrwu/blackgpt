@@ -91,7 +91,8 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
                   key={i}
                   src={src}
                   alt="shared"
-                  className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
+                  className="max-w-[200px] max-h-[200px] rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setLightboxSrc(src)}
                 />
               ))}
             </div>
