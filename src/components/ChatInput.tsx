@@ -279,6 +279,10 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           <Send className="h-4 w-4" />
         </Button>
       </div>
+
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 };
