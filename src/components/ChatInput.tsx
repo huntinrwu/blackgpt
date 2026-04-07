@@ -133,6 +133,11 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
     }
   };
 
+  // Expose processFiles for external drag-and-drop
+  useEffect(() => {
+    onFileDrop?.((files: FileList) => processFiles(files));
+  }, [onFileDrop]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
