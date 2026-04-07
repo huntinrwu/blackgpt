@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import WebcamCapture from "@/components/WebcamCapture";
+import ImageLightbox from "@/components/ImageLightbox";
 import type { MsgContent } from "@/hooks/useConversations";
 
 interface ChatInputProps {
   onSend: (content: MsgContent, files?: File[]) => void;
   disabled?: boolean;
+  onFileDrop?: (processor: (files: FileList) => Promise<void>) => void;
 }
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
@@ -41,10 +43,11 @@ interface AttachedFile {
   file: File;
 }
 
-const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
+const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
   const [input, setInput] = useState("");
   const [attachments, setAttachments] = useState<AttachedFile[]>([]);
   const [webcamOpen, setWebcamOpen] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,6 +133,11 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
     }
   };
 
+  // Expose processFiles for external drag-and-drop
+  useEffect(() => {
+    onFileDrop?.((files: FileList) => processFiles(files));
+  }, [onFileDrop]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -156,7 +164,7 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           {attachments.map((att, i) => (
             <div key={i} className="relative shrink-0 rounded-lg overflow-hidden border border-border">
               {att.preview ? (
-                <div className="w-16 h-16">
+                <div className="w-16 h-16 cursor-pointer" onClick={() => setLightboxSrc(att.preview!)}>
                   <img src={att.preview} alt="upload" className="w-full h-full object-cover" />
                 </div>
               ) : (
@@ -166,7 +174,7 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
                 </div>
               )}
               <button
-                onClick={() => removeAttachment(i)}
+                onClick={(e) => { e.stopPropagation(); removeAttachment(i); }}
                 className="absolute top-0 right-0 bg-background/80 rounded-bl-lg p-0.5"
               >
                 <X className="w-3 h-3 text-foreground" />
@@ -271,6 +279,10 @@ const ChatInput = ({ onSend, disabled }: ChatInputProps) => {
           <Send className="h-4 w-4" />
         </Button>
       </div>
+
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 };

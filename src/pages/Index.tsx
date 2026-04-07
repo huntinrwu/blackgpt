@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
@@ -31,9 +31,49 @@ const Index = () => {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileProcessorRef = useRef<((files: FileList) => Promise<void>) | null>(null);
+  const dragCounterRef = useRef(0);
+
+  const handleFileDrop = useCallback((processor: (files: FileList) => Promise<void>) => {
+    fileProcessorRef.current = processor;
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0 && fileProcessorRef.current) {
+      await fileProcessorRef.current(e.dataTransfer.files);
+    }
+  }, []);
 
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
@@ -187,7 +227,23 @@ const Index = () => {
         onLogout={signOut}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
+      <div
+        className="flex flex-col flex-1 min-w-0 relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-lg m-2 pointer-events-none">
+            <div className="text-center">
+              <p className="text-2xl mb-1">📎</p>
+              <p className="text-lg font-semibold text-primary">Drop files here</p>
+              <p className="text-sm text-muted-foreground">Images, PDFs, docs — we got you</p>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <header className="flex items-center justify-between py-5 px-4 border-b border-border bg-card">
           <div className="flex-1" />
@@ -272,7 +328,7 @@ const Index = () => {
 
         {/* Input */}
         <div className="max-w-3xl mx-auto w-full">
-          <ChatInput onSend={send} disabled={isLoading} />
+          <ChatInput onSend={send} disabled={isLoading} onFileDrop={handleFileDrop} />
         </div>
       </div>
     </div>

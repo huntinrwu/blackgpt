@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { useState, useCallback } from "react";
 import { Copy, Check, RefreshCw } from "lucide-react";
 import type { MsgContent } from "@/hooks/useConversations";
+import ImageLightbox from "@/components/ImageLightbox";
 
 function CopyCodeBlock({ children, className }: { children: string; className?: string }) {
   const [copied, setCopied] = useState(false);
@@ -64,6 +65,7 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
   const text = extractText(content);
   const images = extractImages(content);
   const [copied, setCopied] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const handleCopyText = useCallback(() => {
     navigator.clipboard.writeText(text);
@@ -90,7 +92,8 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
                   key={i}
                   src={src}
                   alt="shared"
-                  className="max-w-[200px] max-h-[200px] rounded-lg object-cover"
+                  className="max-w-[200px] max-h-[200px] rounded-lg object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setLightboxSrc(src)}
                 />
               ))}
             </div>
@@ -151,6 +154,9 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
           </div>
         )}
       </div>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 };
