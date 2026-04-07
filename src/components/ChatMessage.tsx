@@ -65,6 +65,7 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
   const text = extractText(content);
   const images = extractImages(content);
   const [copied, setCopied] = useState(false);
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
   const handleCopyText = useCallback(() => {
     navigator.clipboard.writeText(text);
