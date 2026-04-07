@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import WebcamCapture from "@/components/WebcamCapture";
+import ImageLightbox from "@/components/ImageLightbox";
 import type { MsgContent } from "@/hooks/useConversations";
 
 interface ChatInputProps {
