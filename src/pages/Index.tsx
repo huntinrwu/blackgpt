@@ -31,9 +31,49 @@ const Index = () => {
   const navigate = useNavigate();
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileProcessorRef = useRef<((files: FileList) => Promise<void>) | null>(null);
+  const dragCounterRef = useRef(0);
+
+  const handleFileDrop = useCallback((processor: (files: FileList) => Promise<void>) => {
+    fileProcessorRef.current = processor;
+  }, []);
+
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current = 0;
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0 && fileProcessorRef.current) {
+      await fileProcessorRef.current(e.dataTransfer.files);
+    }
+  }, []);
 
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
