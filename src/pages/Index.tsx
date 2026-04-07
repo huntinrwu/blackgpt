@@ -227,7 +227,23 @@ const Index = () => {
         onLogout={signOut}
       />
 
-      <div className="flex flex-col flex-1 min-w-0">
+      <div
+        className="flex flex-col flex-1 min-w-0 relative"
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {/* Drag overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm border-2 border-dashed border-primary rounded-lg m-2 pointer-events-none">
+            <div className="text-center">
+              <p className="text-2xl mb-1">📎</p>
+              <p className="text-lg font-semibold text-primary">Drop files here</p>
+              <p className="text-sm text-muted-foreground">Images, PDFs, docs — we got you</p>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <header className="flex items-center justify-between py-5 px-4 border-b border-border bg-card">
           <div className="flex-1" />
