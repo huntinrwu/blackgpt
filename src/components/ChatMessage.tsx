@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { useState, useCallback } from "react";
 import { Copy, Check, RefreshCw } from "lucide-react";
 import type { MsgContent } from "@/hooks/useConversations";
+import ImageLightbox from "@/components/ImageLightbox";
 
 function CopyCodeBlock({ children, className }: { children: string; className?: string }) {
   const [copied, setCopied] = useState(false);
