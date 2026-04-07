@@ -164,7 +164,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           {attachments.map((att, i) => (
             <div key={i} className="relative shrink-0 rounded-lg overflow-hidden border border-border">
               {att.preview ? (
-                <div className="w-16 h-16">
+                <div className="w-16 h-16 cursor-pointer" onClick={() => setLightboxSrc(att.preview!)}>
                   <img src={att.preview} alt="upload" className="w-full h-full object-cover" />
                 </div>
               ) : (
@@ -174,7 +174,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
                 </div>
               )}
               <button
-                onClick={() => removeAttachment(i)}
+                onClick={(e) => { e.stopPropagation(); removeAttachment(i); }}
                 className="absolute top-0 right-0 bg-background/80 rounded-bl-lg p-0.5"
               >
                 <X className="w-3 h-3 text-foreground" />
