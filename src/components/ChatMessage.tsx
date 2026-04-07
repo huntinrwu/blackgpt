@@ -153,6 +153,9 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
           </div>
         )}
       </div>
+      {lightboxSrc && (
+        <ImageLightbox src={lightboxSrc} onClose={() => setLightboxSrc(null)} />
+      )}
     </div>
   );
 };
