@@ -100,7 +100,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey && !isMobile) {
       e.preventDefault();
       handleSubmit();
     }
