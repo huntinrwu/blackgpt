@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
@@ -84,7 +85,7 @@ const Index = () => {
   }, [messages]);
 
   const getAuthHeaders = async () => {
-    const { data: { session } } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     return {
       "Content-Type": "application/json",
@@ -97,7 +98,7 @@ const Index = () => {
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
     const isFirstMessage = messages.length === 0;
-    setMessages(allMessages);
+    setMessages(allMessages, convId);
     setIsLoading(true);
 
     let assistantSoFar = "";
@@ -150,7 +151,7 @@ const Index = () => {
                   );
                 }
                 return [...prev, { role: "assistant", content: snapshot }];
-              });
+              }, convId);
             }
           } catch {
             textBuffer = line + "\n" + textBuffer;
@@ -170,7 +171,7 @@ const Index = () => {
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "Aye bruh, somethin went wrong. Try again. 💀" },
-      ]);
+      ], convId);
     } finally {
       setIsLoading(false);
     }
