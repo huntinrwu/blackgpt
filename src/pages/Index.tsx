@@ -151,7 +151,7 @@ const Index = () => {
                   );
                 }
                 return [...prev, { role: "assistant", content: snapshot }];
-              });
+              }, convId);
             }
           } catch {
             textBuffer = line + "\n" + textBuffer;
@@ -171,7 +171,7 @@ const Index = () => {
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "Aye bruh, somethin went wrong. Try again. 💀" },
-      ]);
+      ], convId);
     } finally {
       setIsLoading(false);
     }
