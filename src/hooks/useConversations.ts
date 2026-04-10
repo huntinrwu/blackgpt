@@ -96,11 +96,12 @@ export function useConversations() {
   const messages = activeConversation?.messages ?? [];
 
   const setMessages = useCallback(
-    (updater: Msg[] | ((prev: Msg[]) => Msg[])) => {
+    (updater: Msg[] | ((prev: Msg[]) => Msg[]), forId?: string) => {
       setConversations((prev) => {
-        if (!activeId) return prev;
+        const targetId = forId || activeId;
+        if (!targetId) return prev;
         return prev.map((c) => {
-          if (c.id !== activeId) return c;
+          if (c.id !== targetId) return c;
           const newMsgs = typeof updater === "function" ? updater(c.messages) : updater;
           return {
             ...c,

@@ -84,7 +84,7 @@ const Index = () => {
   }, [messages]);
 
   const getAuthHeaders = async () => {
-    const { data: { session } } = await (await import("@/integrations/supabase/client")).supabase.auth.getSession();
+    const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
     return {
       "Content-Type": "application/json",
@@ -97,7 +97,7 @@ const Index = () => {
     const userMsg: Msg = { role: "user", content: input };
     const allMessages = [...messages, userMsg];
     const isFirstMessage = messages.length === 0;
-    setMessages(allMessages);
+    setMessages(allMessages, convId);
     setIsLoading(true);
 
     let assistantSoFar = "";
