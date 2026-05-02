@@ -9,6 +9,7 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
   const [connecting, setConnecting] = useState(false);
   const startedRef = useRef(false);
   const wasConnectedRef = useRef(false);
+  const attemptedForOpenRef = useRef(false);
 
   const conversation = useConversation({
     onConnect: () => {
@@ -36,8 +37,9 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
   const isConnected = conversation.status === "connected";
 
   const start = useCallback(async () => {
-    if (startedRef.current) return;
+    if (startedRef.current || attemptedForOpenRef.current) return;
     startedRef.current = true;
+    attemptedForOpenRef.current = true;
     try {
       setConnecting(true);
 
@@ -82,7 +84,12 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
   }, [conversation, onClose]);
 
   useEffect(() => {
-    if (open && !startedRef.current) {
+    if (!open) {
+      attemptedForOpenRef.current = false;
+      return;
+    }
+
+    if (!startedRef.current) {
       start();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
