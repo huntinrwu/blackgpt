@@ -7,8 +7,9 @@ import ConversationSidebar from "@/components/ConversationSidebar";
 import { useConversations, Msg, MsgContent } from "@/hooks/useConversations";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { LogIn, LogOut, User } from "lucide-react";
+import { LogIn, LogOut, User, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import VoiceCall from "@/components/VoiceCall";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blackgpt-chat`;
 
