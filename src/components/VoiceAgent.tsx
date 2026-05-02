@@ -1,31 +1,22 @@
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
   const [connecting, setConnecting] = useState(false);
-  const startedRef = useRef(false);
-  const wasConnectedRef = useRef(false);
-  const attemptedForOpenRef = useRef(false);
 
   const conversation = useConversation({
-    onConnect: () => {
-      wasConnectedRef.current = true;
+    onConnect: () => setConnecting(false),
+    onDisconnect: () => {
       setConnecting(false);
-    },
-    onDisconnect: (details) => {
-      console.info("Voice agent disconnected:", details);
-      setConnecting(false);
-      startedRef.current = false;
-      wasConnectedRef.current = false;
+      onClose();
     },
     onError: (error) => {
       console.error("Voice agent error:", error);
       setConnecting(false);
-      startedRef.current = false;
       toast({
         variant: "destructive",
         title: "Voice agent error",
@@ -37,30 +28,26 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
   const isConnected = conversation.status === "connected";
 
   const start = useCallback(async () => {
-    if (startedRef.current || attemptedForOpenRef.current) return;
-    startedRef.current = true;
-    attemptedForOpenRef.current = true;
     try {
       setConnecting(true);
+      await navigator.mediaDevices.getUserMedia({ audio: true });
 
-      const { data, error } = await supabase.functions.invoke<{ token: string }>(
-        "elevenlabs-conversation-token",
+      const { data, error } = await supabase.functions.invoke<{ signedUrl: string }>(
+        "elevenlabs-signed-url",
         { method: "POST" }
       );
 
-      if (error || !data?.token) {
-        throw new Error(error?.message || "No voice session token returned");
+      if (error || !data?.signedUrl) {
+        throw new Error(error?.message || "No voice session URL returned");
       }
 
       conversation.startSession({
-        conversationToken: data.token,
-        connectionType: "webrtc",
-        useWakeLock: false,
+        signedUrl: data.signedUrl,
+        connectionType: "websocket",
       });
     } catch (err) {
       console.error("Voice agent start failed:", err);
       setConnecting(false);
-      startedRef.current = false;
       toast({
         variant: "destructive",
         title: "Voice agent error",
@@ -73,29 +60,14 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
   }, [conversation]);
 
   const stop = useCallback(async () => {
-    wasConnectedRef.current = false;
-    startedRef.current = false;
-    try {
-      await conversation.endSession();
-    } catch (e) {
-      // ignore
-    }
+    await conversation.endSession();
     onClose();
   }, [conversation, onClose]);
 
   useEffect(() => {
-    if (!open) {
-      attemptedForOpenRef.current = false;
-      return;
-    }
-
-    if (!startedRef.current) {
-      start();
-    }
+    if (!isConnected && !connecting) start();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
-
-  if (!open) return null;
+  }, []);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md">
@@ -158,9 +130,11 @@ const VoiceAgent = () => {
         <Phone className="h-5 w-5" />
       </Button>
 
-      <ConversationProvider>
-        <VoiceAgentInner open={open} onClose={() => setOpen(false)} />
-      </ConversationProvider>
+      {open && (
+        <ConversationProvider>
+          <VoiceAgentInner onClose={() => setOpen(false)} />
+        </ConversationProvider>
+      )}
     </>
   );
 };
