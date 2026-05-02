@@ -36,6 +36,7 @@ const Index = () => {
   const [isDragging, setIsDragging] = useState(false);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileProcessorRef = useRef<((files: FileList) => Promise<void>) | null>(null);
   const dragCounterRef = useRef(0);
@@ -254,7 +255,16 @@ const Index = () => {
             <span className="text-foreground">GPT</span>
             <span className="text-muted-foreground text-sm font-normal ml-2">v1.0</span>
           </h1>
-          <div className="flex-1 flex justify-end">
+          <div className="flex-1 flex justify-end items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-primary hover:text-primary hover:bg-primary/10"
+              onClick={() => setVoiceOpen(true)}
+              title="Voice mode"
+            >
+              <Phone className="h-4 w-4" />
+            </Button>
             {user ? (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[120px]">
@@ -283,6 +293,8 @@ const Index = () => {
             )}
           </div>
         </header>
+
+        <VoiceCall open={voiceOpen} onClose={() => setVoiceOpen(false)} />
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl mx-auto w-full">
