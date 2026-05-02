@@ -3,8 +3,7 @@ import { useCallback, useState, useEffect } from "react";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-
-const AGENT_ID = "agent_2001kqmrfq7af29t42kapv2z0ah2";
+import { supabase } from "@/integrations/supabase/client";
 
 const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
   const [connecting, setConnecting] = useState(false);
@@ -32,17 +31,30 @@ const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
     try {
       setConnecting(true);
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      await conversation.startSession({
-        agentId: AGENT_ID,
+
+      const { data, error } = await supabase.functions.invoke<{ signedUrl: string }>(
+        "elevenlabs-signed-url",
+        { method: "POST" }
+      );
+
+      if (error || !data?.signedUrl) {
+        throw new Error(error?.message || "No voice session URL returned");
+      }
+
+      conversation.startSession({
+        signedUrl: data.signedUrl,
         connectionType: "websocket",
       });
     } catch (err) {
-      console.error(err);
+      console.error("Voice agent start failed:", err);
       setConnecting(false);
       toast({
         variant: "destructive",
-        title: "Mic access denied",
-        description: "Enable microphone permissions to use voice chat.",
+        title: "Voice agent error",
+        description:
+          err instanceof DOMException && err.name === "NotAllowedError"
+            ? "Enable microphone permissions to use voice chat."
+            : "Couldn't start the voice session. Try again.",
       });
     }
   }, [conversation]);
