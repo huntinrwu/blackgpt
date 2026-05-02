@@ -1,4 +1,4 @@
-import { useConversation } from "@elevenlabs/react";
+import { ConversationProvider, useConversation } from "@elevenlabs/react";
 import { useCallback, useState, useEffect } from "react";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -130,7 +130,11 @@ const VoiceAgent = () => {
         <Phone className="h-5 w-5" />
       </Button>
 
-      {open && <VoiceAgentInner onClose={() => setOpen(false)} />}
+      {open && (
+        <ConversationProvider>
+          <VoiceAgentInner onClose={() => setOpen(false)} />
+        </ConversationProvider>
+      )}
     </>
   );
 };
