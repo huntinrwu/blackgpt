@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import ConversationSidebar from "@/components/ConversationSidebar";
-import VoiceAgent from "@/components/VoiceAgent";
+
 import { useConversations, Msg, MsgContent } from "@/hooks/useConversations";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -333,7 +333,7 @@ const Index = () => {
           <ChatInput onSend={send} disabled={isLoading} onFileDrop={handleFileDrop} />
         </div>
 
-        <VoiceAgent />
+        
       </div>
     </div>
   );

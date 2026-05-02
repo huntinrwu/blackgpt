@@ -5,6 +5,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 import WebcamCapture from "@/components/WebcamCapture";
 import ImageLightbox from "@/components/ImageLightbox";
+import VoiceAgent from "@/components/VoiceAgent";
 import type { MsgContent } from "@/hooks/useConversations";
 
 interface ChatInputProps {
@@ -270,11 +271,14 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           </Button>
         )}
 
+        <VoiceAgent />
+
         <Button
           onClick={handleSubmit}
           disabled={(!input.trim() && attachments.length === 0) || disabled}
           size="icon"
-          className="rounded-xl h-11 w-11 shrink-0 gold-glow"
+          variant="outline"
+          className="rounded-xl h-11 w-11 shrink-0"
         >
           <Send className="h-4 w-4" />
         </Button>

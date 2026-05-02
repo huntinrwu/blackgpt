@@ -124,10 +124,10 @@ const VoiceAgent = () => {
       <Button
         onClick={() => setOpen(true)}
         size="icon"
-        className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-30 h-14 w-14 rounded-full gold-glow shadow-lg"
+        className="rounded-xl h-11 w-11 shrink-0 gold-glow"
         title="Talk to BlackGPT"
       >
-        <Phone className="h-6 w-6" />
+        <Phone className="h-5 w-5" />
       </Button>
 
       {open && (
