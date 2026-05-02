@@ -34,7 +34,7 @@ const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       await conversation.startSession({
         agentId: AGENT_ID,
-        connectionType: "webrtc",
+        connectionType: "websocket",
       });
     } catch (err) {
       console.error(err);
