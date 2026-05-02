@@ -40,8 +40,6 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
     startedRef.current = true;
     try {
       setConnecting(true);
-      const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      permissionStream.getTracks().forEach((track) => track.stop());
 
       const { data, error } = await supabase.functions.invoke<{ token: string }>(
         "elevenlabs-conversation-token",
