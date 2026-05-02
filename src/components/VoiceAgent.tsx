@@ -1,22 +1,33 @@
 import { ConversationProvider, useConversation } from "@elevenlabs/react";
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Phone, PhoneOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
+const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const [connecting, setConnecting] = useState(false);
+  const startedRef = useRef(false);
+  const wasConnectedRef = useRef(false);
 
   const conversation = useConversation({
-    onConnect: () => setConnecting(false),
+    onConnect: () => {
+      wasConnectedRef.current = true;
+      setConnecting(false);
+    },
     onDisconnect: () => {
       setConnecting(false);
-      onClose();
+      startedRef.current = false;
+      // Only close if we were actually connected (avoid closing on a phantom disconnect during setup)
+      if (wasConnectedRef.current) {
+        wasConnectedRef.current = false;
+        onClose();
+      }
     },
     onError: (error) => {
       console.error("Voice agent error:", error);
       setConnecting(false);
+      startedRef.current = false;
       toast({
         variant: "destructive",
         title: "Voice agent error",
@@ -28,6 +39,8 @@ const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
   const isConnected = conversation.status === "connected";
 
   const start = useCallback(async () => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     try {
       setConnecting(true);
       await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -41,13 +54,14 @@ const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
         throw new Error(error?.message || "No voice session URL returned");
       }
 
-      conversation.startSession({
+      await conversation.startSession({
         signedUrl: data.signedUrl,
         connectionType: "websocket",
       });
     } catch (err) {
       console.error("Voice agent start failed:", err);
       setConnecting(false);
+      startedRef.current = false;
       toast({
         variant: "destructive",
         title: "Voice agent error",
@@ -60,14 +74,24 @@ const VoiceAgentInner = ({ onClose }: { onClose: () => void }) => {
   }, [conversation]);
 
   const stop = useCallback(async () => {
-    await conversation.endSession();
+    wasConnectedRef.current = false;
+    startedRef.current = false;
+    try {
+      await conversation.endSession();
+    } catch (e) {
+      // ignore
+    }
     onClose();
   }, [conversation, onClose]);
 
   useEffect(() => {
-    if (!isConnected && !connecting) start();
+    if (open && !startedRef.current) {
+      start();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [open]);
+
+  if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md">
@@ -130,11 +154,9 @@ const VoiceAgent = () => {
         <Phone className="h-5 w-5" />
       </Button>
 
-      {open && (
-        <ConversationProvider>
-          <VoiceAgentInner onClose={() => setOpen(false)} />
-        </ConversationProvider>
-      )}
+      <ConversationProvider>
+        <VoiceAgentInner open={open} onClose={() => setOpen(false)} />
+      </ConversationProvider>
     </>
   );
 };
