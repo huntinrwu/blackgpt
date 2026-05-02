@@ -15,14 +15,11 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
       wasConnectedRef.current = true;
       setConnecting(false);
     },
-    onDisconnect: () => {
+    onDisconnect: (details) => {
+      console.info("Voice agent disconnected:", details);
       setConnecting(false);
       startedRef.current = false;
-      // Only close if we were actually connected (avoid closing on a phantom disconnect during setup)
-      if (wasConnectedRef.current) {
-        wasConnectedRef.current = false;
-        onClose();
-      }
+      wasConnectedRef.current = false;
     },
     onError: (error) => {
       console.error("Voice agent error:", error);
@@ -43,20 +40,22 @@ const VoiceAgentInner = ({ open, onClose }: { open: boolean; onClose: () => void
     startedRef.current = true;
     try {
       setConnecting(true);
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const permissionStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      permissionStream.getTracks().forEach((track) => track.stop());
 
-      const { data, error } = await supabase.functions.invoke<{ signedUrl: string }>(
-        "elevenlabs-signed-url",
+      const { data, error } = await supabase.functions.invoke<{ token: string }>(
+        "elevenlabs-conversation-token",
         { method: "POST" }
       );
 
-      if (error || !data?.signedUrl) {
-        throw new Error(error?.message || "No voice session URL returned");
+      if (error || !data?.token) {
+        throw new Error(error?.message || "No voice session token returned");
       }
 
-      await conversation.startSession({
-        signedUrl: data.signedUrl,
-        connectionType: "websocket",
+      conversation.startSession({
+        conversationToken: data.token,
+        connectionType: "webrtc",
+        useWakeLock: false,
       });
     } catch (err) {
       console.error("Voice agent start failed:", err);
