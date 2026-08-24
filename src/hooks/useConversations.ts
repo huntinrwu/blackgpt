@@ -59,6 +59,8 @@ export function useConversations() {
   // Load conversations on mount or auth change
   useEffect(() => {
     setLoaded(false);
+    initDone.current = false;
+
     if (isCloud) {
       loadCloudConversations().then((convos) => {
         setConversations(convos);
