@@ -48,6 +48,52 @@ setInterval(() => {
   }
 }, 60_000);
 
+// --- Lightweight usage analytics -------------------------------------------
+// Privacy-light: we never store message content, IPs or user agents.
+const PRICING: Record<string, { in: number; out: number }> = {
+  // USD per 1M tokens (approximate list prices)
+  "google/gemini-3-flash-preview": { in: 0.3, out: 2.5 },
+  "google/gemini-2.5-flash-lite": { in: 0.1, out: 0.4 },
+};
+
+function estimateCost(model: string, inTok: number, outTok: number) {
+  const p = PRICING[model] ?? { in: 0, out: 0 };
+  return (inTok * p.in + outTok * p.out) / 1_000_000;
+}
+
+const adminClient = createClient(
+  Deno.env.get("SUPABASE_URL")!,
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  { auth: { persistSession: false } },
+);
+
+function sanitize(v: unknown, max = 120): string | null {
+  if (typeof v !== "string") return null;
+  const s = v.trim().slice(0, max);
+  return s.length ? s : null;
+}
+
+async function logUsage(row: {
+  user_id: string | null;
+  visitor_id: string | null;
+  event_type: string;
+  model: string;
+  prompt_tokens: number;
+  completion_tokens: number;
+  source: string | null;
+  referrer_host: string | null;
+}) {
+  try {
+    await adminClient.from("usage_events").insert({
+      ...row,
+      cost_usd: estimateCost(row.model, row.prompt_tokens, row.completion_tokens),
+    });
+  } catch (e) {
+    console.error("usage log failed:", e);
+  }
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -86,7 +132,8 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-    const { messages, action } = body;
+    const { messages, action, visitor_id, source, referrer_host } = body;
+
 
     // Input validation
     if (!Array.isArray(messages) || messages.length === 0) {
