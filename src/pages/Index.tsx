@@ -10,6 +10,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { LogIn, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getAttribution } from "@/lib/analytics";
+
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blackgpt-chat`;
 
@@ -109,7 +111,7 @@ const Index = () => {
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers,
-        body: JSON.stringify({ messages: allMessages }),
+        body: JSON.stringify({ messages: allMessages, ...getAttribution() }),
       });
 
       if (!resp.ok || !resp.body) {

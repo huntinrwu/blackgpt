@@ -9,6 +9,11 @@ import Auth from "./pages/Auth.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import OAuthConsent from "./pages/OAuthConsent.tsx";
+import Analytics from "./pages/Analytics.tsx";
+import { captureAttribution } from "@/lib/analytics";
+
+captureAttribution();
+
 
 const queryClient = new QueryClient();
 
@@ -23,7 +28,9 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
