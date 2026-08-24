@@ -221,6 +221,7 @@ serve(async (req) => {
 
     // Limit conversation history sent to AI (last 40 messages to control costs)
     const trimmedMessages = messages.slice(-40);
+    const CHAT_MODEL = "google/gemini-3-flash-preview";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -229,12 +230,13 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: CHAT_MODEL,
         messages: [
           { role: "system", content: SYSTEM_PROMPT },
           ...trimmedMessages,
         ],
         stream: true,
+        stream_options: { include_usage: true },
       }),
     });
 
@@ -259,9 +261,47 @@ serve(async (req) => {
       );
     }
 
-    return new Response(response.body, {
+    // Tee the stream so we can read token usage without touching content.
+    let promptTokens = 0;
+    let completionTokens = 0;
+    let tail = "";
+    const decoder = new TextDecoder();
+
+    const meter = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        controller.enqueue(chunk);
+        tail = (tail + decoder.decode(chunk, { stream: true })).slice(-8000);
+      },
+      flush() {
+        for (const line of tail.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const payload = line.slice(6).trim();
+          if (payload === "[DONE]") continue;
+          try {
+            const usage = JSON.parse(payload)?.usage;
+            if (usage) {
+              promptTokens = usage.prompt_tokens ?? 0;
+              completionTokens = usage.completion_tokens ?? 0;
+            }
+          } catch { /* partial chunk */ }
+        }
+        logUsage({
+          user_id: userId === "guest" ? null : userId,
+          visitor_id: sanitize(visitor_id, 64),
+          event_type: "message",
+          model: CHAT_MODEL,
+          prompt_tokens: promptTokens,
+          completion_tokens: completionTokens,
+          source: sanitize(source),
+          referrer_host: sanitize(referrer_host),
+        });
+      },
+    });
+
+    return new Response(response.body!.pipeThrough(meter), {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
+
   } catch (e) {
     console.error("chat error:", e);
     return new Response(
