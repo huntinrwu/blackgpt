@@ -70,15 +70,85 @@ export type Database = {
           },
         ]
       }
+      usage_events: {
+        Row: {
+          completion_tokens: number
+          cost_usd: number
+          created_at: string
+          event_type: string
+          id: string
+          model: string | null
+          prompt_tokens: number
+          referrer_host: string | null
+          source: string | null
+          user_id: string | null
+          visitor_id: string | null
+        }
+        Insert: {
+          completion_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          model?: string | null
+          prompt_tokens?: number
+          referrer_host?: string | null
+          source?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Update: {
+          completion_tokens?: number
+          cost_usd?: number
+          created_at?: string
+          event_type?: string
+          id?: string
+          model?: string | null
+          prompt_tokens?: number
+          referrer_host?: string | null
+          source?: string | null
+          user_id?: string | null
+          visitor_id?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      analytics_summary: { Args: { _days?: number }; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -205,6 +275,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
