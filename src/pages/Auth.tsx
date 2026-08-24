@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,17 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
 
+  // Only allow same-origin relative paths as the post-auth destination.
+  const rawNext = searchParams.get("next") ?? "";
+  const nextPath = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
+  const nextUrl = `${window.location.origin}${nextPath}`;
+
   useEffect(() => {
-    if (user) navigate("/");
-  }, [user, navigate]);
+    if (user) navigate(nextPath);
+  }, [user, navigate, nextPath]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +43,7 @@ const Auth = () => {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: { emailRedirectTo: nextUrl },
         });
         if (error) throw error;
         toast.success("Check your email to verify your account! 📬");
@@ -45,7 +51,7 @@ const Auth = () => {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         toast.success("Welcome back, fam! 🔥");
-        navigate("/");
+        navigate(nextPath);
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
@@ -56,7 +62,7 @@ const Auth = () => {
 
   const handleGoogleLogin = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: nextUrl,
     });
     if (result.error) {
       toast.error("Google sign-in failed, try again fam");
@@ -65,7 +71,7 @@ const Auth = () => {
 
   const handleAppleLogin = async () => {
     const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+      redirect_uri: nextUrl,
     });
     if (result.error) {
       toast.error("Apple sign-in failed, try again fam");
