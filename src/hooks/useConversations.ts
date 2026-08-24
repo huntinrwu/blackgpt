@@ -53,6 +53,8 @@ export function useConversations() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const migrationDone = useRef(false);
+  const initDone = useRef(false);
+
 
   // Load conversations on mount or auth change
   useEffect(() => {
