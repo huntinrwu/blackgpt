@@ -62,7 +62,6 @@ export function useConversations() {
     if (isCloud) {
       loadCloudConversations().then((convos) => {
         setConversations(convos);
-        setActiveId(convos.length > 0 ? convos[0].id : null);
         setLoaded(true);
 
         // Migrate localStorage chats on first login
@@ -82,10 +81,10 @@ export function useConversations() {
     } else {
       const local = loadLocal();
       setConversations(local);
-      setActiveId(local.length > 0 ? local[0].id : null);
       setLoaded(true);
     }
   }, [isCloud, user?.id]);
+
 
 
   // Save to localStorage for guests
