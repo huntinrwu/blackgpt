@@ -87,12 +87,28 @@ export function useConversations() {
     }
   }, [isCloud, user?.id]);
 
+  // Always land on a "New Chat" after every full app load
+  useEffect(() => {
+    if (!loaded || initDone.current) return;
+    initDone.current = true;
+
+    const emptyNewChat = conversations.find(
+      (c) => c.messages.length === 0 && c.title === "New Chat"
+    );
+    if (emptyNewChat) {
+      setActiveId(emptyNewChat.id);
+    } else {
+      createConversation();
+    }
+  }, [loaded, conversations, createConversation]);
+
   // Save to localStorage for guests
   useEffect(() => {
     if (!isCloud && loaded) {
       saveLocal(conversations);
     }
   }, [conversations, isCloud, loaded]);
+
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null;
   const messages = activeConversation?.messages ?? [];
