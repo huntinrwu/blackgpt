@@ -53,14 +53,17 @@ export function useConversations() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const migrationDone = useRef(false);
+  const initDone = useRef(false);
+
 
   // Load conversations on mount or auth change
   useEffect(() => {
     setLoaded(false);
+    initDone.current = false;
+
     if (isCloud) {
       loadCloudConversations().then((convos) => {
         setConversations(convos);
-        setActiveId(convos.length > 0 ? convos[0].id : null);
         setLoaded(true);
 
         // Migrate localStorage chats on first login
@@ -80,10 +83,11 @@ export function useConversations() {
     } else {
       const local = loadLocal();
       setConversations(local);
-      setActiveId(local.length > 0 ? local[0].id : null);
       setLoaded(true);
     }
   }, [isCloud, user?.id]);
+
+
 
   // Save to localStorage for guests
   useEffect(() => {
@@ -91,6 +95,7 @@ export function useConversations() {
       saveLocal(conversations);
     }
   }, [conversations, isCloud, loaded]);
+
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null;
   const messages = activeConversation?.messages ?? [];
@@ -173,7 +178,23 @@ export function useConversations() {
     return newConvo.id;
   }, [isCloud, user]);
 
+  // Always land on a "New Chat" after every full app load
+  useEffect(() => {
+    if (!loaded || initDone.current) return;
+    initDone.current = true;
+
+    const emptyNewChat = conversations.find(
+      (c) => c.messages.length === 0 && c.title === "New Chat"
+    );
+    if (emptyNewChat) {
+      setActiveId(emptyNewChat.id);
+    } else {
+      createConversation();
+    }
+  }, [loaded, conversations, createConversation]);
+
   const deleteConversation = useCallback(
+
     async (id: string) => {
       if (isCloud) {
         await supabase.from("conversations").delete().eq("id", id);
