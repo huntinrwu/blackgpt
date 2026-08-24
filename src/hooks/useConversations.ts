@@ -177,7 +177,23 @@ export function useConversations() {
     return newConvo.id;
   }, [isCloud, user]);
 
+  // Always land on a "New Chat" after every full app load
+  useEffect(() => {
+    if (!loaded || initDone.current) return;
+    initDone.current = true;
+
+    const emptyNewChat = conversations.find(
+      (c) => c.messages.length === 0 && c.title === "New Chat"
+    );
+    if (emptyNewChat) {
+      setActiveId(emptyNewChat.id);
+    } else {
+      createConversation();
+    }
+  }, [loaded, conversations, createConversation]);
+
   const deleteConversation = useCallback(
+
     async (id: string) => {
       if (isCloud) {
         await supabase.from("conversations").delete().eq("id", id);
