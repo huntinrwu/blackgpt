@@ -47,13 +47,11 @@ const Analytics = () => {
     }
     let cancelled = false;
     setLoading(true);
-    supabase
-      .rpc("analytics_summary", { _days: days })
+    supabase.functions
+      .invoke("analytics-summary", { body: { days } })
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) setError(error.message.includes("not authorized")
-          ? "You need admin access to view analytics."
-          : error.message);
+        if (error) setError("You need admin access to view analytics.");
         else {
           setError(null);
           setData(data as unknown as Summary);
@@ -61,6 +59,7 @@ const Analytics = () => {
         setLoading(false);
       });
     return () => { cancelled = true; };
+
   }, [user, authLoading, days, navigate]);
 
   const maxMessages = Math.max(1, ...(data?.daily ?? []).map((d) => d.messages));
