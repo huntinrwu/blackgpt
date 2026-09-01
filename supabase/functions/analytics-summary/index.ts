@@ -52,7 +52,10 @@ serve(async (req) => {
       if (Number.isFinite(parsed)) days = Math.min(365, Math.max(1, Math.trunc(parsed)));
     }
 
-    const { data, error } = await adminClient.rpc("analytics_summary", { _days: days });
+    const { data, error } = await adminClient.rpc("analytics_summary", {
+      _days: days,
+      _caller: user.id,
+    });
     if (error) {
       console.error("analytics_summary failed:", error);
       return json({ error: "Unable to load analytics" }, 500);
