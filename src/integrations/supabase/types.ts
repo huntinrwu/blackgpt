@@ -138,7 +138,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      analytics_summary: { Args: { _days?: number }; Returns: Json }
+      analytics_summary: {
+        Args: { _caller?: string; _days?: number }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
