@@ -46,7 +46,7 @@ function generateFallbackTitle(messages: Msg[]): string {
 }
 
 export function useConversations() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isCloud = !!user;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -54,16 +54,22 @@ export function useConversations() {
   const [loaded, setLoaded] = useState(false);
   const migrationDone = useRef(false);
   const initDone = useRef(false);
+  const creatingRef = useRef<Promise<string> | null>(null);
 
 
-  // Load conversations on mount or auth change
+  // Load conversations once auth state is known
   useEffect(() => {
+    if (authLoading) return;
+
+    let cancelled = false;
     setLoaded(false);
     initDone.current = false;
 
     if (isCloud) {
       loadCloudConversations().then((convos) => {
+        if (cancelled) return;
         setConversations(convos);
+        setActiveId(null);
         setLoaded(true);
 
         // Migrate localStorage chats on first login
@@ -72,7 +78,7 @@ export function useConversations() {
           const localConvos = loadLocal();
           if (localConvos.length > 0) {
             migrateLocalToCloud(localConvos, user!.id).then((migrated) => {
-              if (migrated.length > 0) {
+              if (migrated.length > 0 && !cancelled) {
                 setConversations((prev) => [...migrated, ...prev]);
                 localStorage.removeItem(STORAGE_KEY);
               }
@@ -83,9 +89,15 @@ export function useConversations() {
     } else {
       const local = loadLocal();
       setConversations(local);
+      setActiveId(null);
       setLoaded(true);
     }
-  }, [isCloud, user?.id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isCloud, user?.id, authLoading]);
+
 
 
 
@@ -99,6 +111,10 @@ export function useConversations() {
 
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null;
   const messages = activeConversation?.messages ?? [];
+
+  const conversationsRef = useRef<Conversation[]>(conversations);
+  conversationsRef.current = conversations;
+
 
   const setMessages = useCallback(
     (updater: Msg[] | ((prev: Msg[]) => Msg[]), forId?: string) => {
@@ -154,44 +170,60 @@ export function useConversations() {
   );
 
   const createConversation = useCallback(async () => {
-    const id = crypto.randomUUID();
-    const newConvo: Conversation = {
-      id,
-      title: "New Chat",
-      messages: [],
-      updatedAt: Date.now(),
-    };
+    // Coalesce concurrent creates (e.g. rapid taps on "New Chat")
+    if (creatingRef.current) return creatingRef.current;
 
-    if (isCloud && user) {
-      const { data } = await supabase
-        .from("conversations")
-        .insert({ id, user_id: user.id, title: "New Chat" })
-        .select("id")
-        .single();
-      if (data) {
-        newConvo.id = data.id;
+    const run = (async () => {
+      const id = crypto.randomUUID();
+      const newConvo: Conversation = {
+        id,
+        title: "New Chat",
+        messages: [],
+        updatedAt: Date.now(),
+      };
+
+      if (isCloud && user) {
+        const { data } = await supabase
+          .from("conversations")
+          .insert({ id, user_id: user.id, title: "New Chat" })
+          .select("id")
+          .single();
+        if (data) {
+          newConvo.id = data.id;
+        }
       }
-    }
 
-    setConversations((prev) => [newConvo, ...prev]);
-    setActiveId(newConvo.id);
-    return newConvo.id;
+      setConversations((prev) => [newConvo, ...prev]);
+      setActiveId(newConvo.id);
+      return newConvo.id;
+    })();
+
+    creatingRef.current = run;
+    try {
+      return await run;
+    } finally {
+      creatingRef.current = null;
+    }
   }, [isCloud, user]);
+
+  // Reuse an empty chat instead of stacking new ones
+  const startNewChat = useCallback(async () => {
+    const empty = conversationsRef.current.find(
+      (c) => c.messages.length === 0 && c.title === "New Chat"
+    );
+    if (empty) {
+      setActiveId(empty.id);
+      return empty.id;
+    }
+    return createConversation();
+  }, [createConversation]);
 
   // Always land on a "New Chat" after every full app load
   useEffect(() => {
     if (!loaded || initDone.current) return;
     initDone.current = true;
-
-    const emptyNewChat = conversations.find(
-      (c) => c.messages.length === 0 && c.title === "New Chat"
-    );
-    if (emptyNewChat) {
-      setActiveId(emptyNewChat.id);
-    } else {
-      createConversation();
-    }
-  }, [loaded, conversations, createConversation]);
+    startNewChat();
+  }, [loaded, startNewChat]);
 
   const deleteConversation = useCallback(
 
@@ -211,11 +243,14 @@ export function useConversations() {
   );
 
   const ensureConversation = useCallback(async () => {
-    if (!activeId) {
-      return createConversation();
+    const valid =
+      activeId && conversationsRef.current.some((c) => c.id === activeId);
+    if (!valid) {
+      return startNewChat();
     }
     return activeId;
-  }, [activeId, createConversation]);
+  }, [activeId, startNewChat]);
+
 
   const setTitle = useCallback(
     async (id: string, title: string) => {
@@ -248,7 +283,7 @@ export function useConversations() {
     messages,
     setMessages,
     setActiveId,
-    createConversation,
+    createConversation: startNewChat,
     deleteConversation,
     ensureConversation,
     setTitle,
