@@ -46,7 +46,7 @@ function generateFallbackTitle(messages: Msg[]): string {
 }
 
 export function useConversations() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isCloud = !!user;
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -54,16 +54,22 @@ export function useConversations() {
   const [loaded, setLoaded] = useState(false);
   const migrationDone = useRef(false);
   const initDone = useRef(false);
+  const creatingRef = useRef<Promise<string> | null>(null);
 
 
-  // Load conversations on mount or auth change
+  // Load conversations once auth state is known
   useEffect(() => {
+    if (authLoading) return;
+
+    let cancelled = false;
     setLoaded(false);
     initDone.current = false;
 
     if (isCloud) {
       loadCloudConversations().then((convos) => {
+        if (cancelled) return;
         setConversations(convos);
+        setActiveId(null);
         setLoaded(true);
 
         // Migrate localStorage chats on first login
@@ -72,7 +78,7 @@ export function useConversations() {
           const localConvos = loadLocal();
           if (localConvos.length > 0) {
             migrateLocalToCloud(localConvos, user!.id).then((migrated) => {
-              if (migrated.length > 0) {
+              if (migrated.length > 0 && !cancelled) {
                 setConversations((prev) => [...migrated, ...prev]);
                 localStorage.removeItem(STORAGE_KEY);
               }
@@ -83,9 +89,15 @@ export function useConversations() {
     } else {
       const local = loadLocal();
       setConversations(local);
+      setActiveId(null);
       setLoaded(true);
     }
-  }, [isCloud, user?.id]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isCloud, user?.id, authLoading]);
+
 
 
 
