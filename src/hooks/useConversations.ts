@@ -166,44 +166,60 @@ export function useConversations() {
   );
 
   const createConversation = useCallback(async () => {
-    const id = crypto.randomUUID();
-    const newConvo: Conversation = {
-      id,
-      title: "New Chat",
-      messages: [],
-      updatedAt: Date.now(),
-    };
+    // Coalesce concurrent creates (e.g. rapid taps on "New Chat")
+    if (creatingRef.current) return creatingRef.current;
 
-    if (isCloud && user) {
-      const { data } = await supabase
-        .from("conversations")
-        .insert({ id, user_id: user.id, title: "New Chat" })
-        .select("id")
-        .single();
-      if (data) {
-        newConvo.id = data.id;
+    const run = (async () => {
+      const id = crypto.randomUUID();
+      const newConvo: Conversation = {
+        id,
+        title: "New Chat",
+        messages: [],
+        updatedAt: Date.now(),
+      };
+
+      if (isCloud && user) {
+        const { data } = await supabase
+          .from("conversations")
+          .insert({ id, user_id: user.id, title: "New Chat" })
+          .select("id")
+          .single();
+        if (data) {
+          newConvo.id = data.id;
+        }
       }
-    }
 
-    setConversations((prev) => [newConvo, ...prev]);
-    setActiveId(newConvo.id);
-    return newConvo.id;
+      setConversations((prev) => [newConvo, ...prev]);
+      setActiveId(newConvo.id);
+      return newConvo.id;
+    })();
+
+    creatingRef.current = run;
+    try {
+      return await run;
+    } finally {
+      creatingRef.current = null;
+    }
   }, [isCloud, user]);
+
+  // Reuse an empty chat instead of stacking new ones
+  const startNewChat = useCallback(async () => {
+    const empty = conversationsRef.current.find(
+      (c) => c.messages.length === 0 && c.title === "New Chat"
+    );
+    if (empty) {
+      setActiveId(empty.id);
+      return empty.id;
+    }
+    return createConversation();
+  }, [createConversation]);
 
   // Always land on a "New Chat" after every full app load
   useEffect(() => {
     if (!loaded || initDone.current) return;
     initDone.current = true;
-
-    const emptyNewChat = conversations.find(
-      (c) => c.messages.length === 0 && c.title === "New Chat"
-    );
-    if (emptyNewChat) {
-      setActiveId(emptyNewChat.id);
-    } else {
-      createConversation();
-    }
-  }, [loaded, conversations, createConversation]);
+    startNewChat();
+  }, [loaded, startNewChat]);
 
   const deleteConversation = useCallback(
 
@@ -223,11 +239,14 @@ export function useConversations() {
   );
 
   const ensureConversation = useCallback(async () => {
-    if (!activeId) {
-      return createConversation();
+    const valid =
+      activeId && conversationsRef.current.some((c) => c.id === activeId);
+    if (!valid) {
+      return startNewChat();
     }
     return activeId;
-  }, [activeId, createConversation]);
+  }, [activeId, startNewChat]);
+
 
   const setTitle = useCallback(
     async (id: string, title: string) => {
