@@ -283,7 +283,7 @@ export function useConversations() {
     messages,
     setMessages,
     setActiveId,
-    createConversation,
+    createConversation: startNewChat,
     deleteConversation,
     ensureConversation,
     setTitle,
