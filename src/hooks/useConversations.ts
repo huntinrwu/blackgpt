@@ -112,6 +112,10 @@ export function useConversations() {
   const activeConversation = conversations.find((c) => c.id === activeId) ?? null;
   const messages = activeConversation?.messages ?? [];
 
+  const conversationsRef = useRef<Conversation[]>(conversations);
+  conversationsRef.current = conversations;
+
+
   const setMessages = useCallback(
     (updater: Msg[] | ((prev: Msg[]) => Msg[]), forId?: string) => {
       setConversations((prev) => {
