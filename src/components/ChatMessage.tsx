@@ -74,7 +74,7 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
   }, [text]);
 
   return (
-    <div className={cn("flex w-full mb-4 group/msg", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full mb-4 group/msg animate-fade-in", isUser ? "justify-end" : "justify-start")}>
       <div className="flex flex-col max-w-[80%]">
         <div
           className={cn(
