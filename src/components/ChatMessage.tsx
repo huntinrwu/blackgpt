@@ -29,7 +29,7 @@ function CopyCodeBlock({ children, className }: { children: string; className?: 
       </pre>
       <button
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        className="absolute top-2 right-2 p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150"
         aria-label="Copy code"
       >
         {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
@@ -74,7 +74,7 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
   }, [text]);
 
   return (
-    <div className={cn("flex w-full mb-4 group/msg", isUser ? "justify-end" : "justify-start")}>
+    <div className={cn("flex w-full mb-4 group/msg animate-fade-in", isUser ? "justify-end" : "justify-start")}>
       <div className="flex flex-col max-w-[80%]">
         <div
           className={cn(
@@ -130,9 +130,10 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
         {/* Action buttons */}
         {text && (
           <div className={cn(
-            "flex gap-1 mt-1 opacity-0 group-hover/msg:opacity-100 transition-opacity",
+            "flex gap-1 mt-1 opacity-60 md:opacity-0 md:group-hover/msg:opacity-100 transition-opacity duration-150",
             isUser ? "justify-end" : "justify-start"
           )}>
+
             <button
               onClick={handleCopyText}
               className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"

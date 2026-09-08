@@ -48,29 +48,34 @@ const ConversationSidebar = ({
   return (
     <>
       {/* Collapsed toggle */}
-      {!open && (
-        <button
-          onClick={onToggle}
-          className="fixed top-4 left-4 z-50 p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-        >
-          <PanelLeft className="h-5 w-5" />
-        </button>
-      )}
+      <button
+        onClick={onToggle}
+        aria-label="Open chat list"
+        className={cn(
+          "fixed top-4 left-4 z-50 p-2 rounded-lg bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-secondary transition-opacity duration-200",
+          open ? "opacity-0 pointer-events-none" : "opacity-100"
+        )}
+      >
+        <PanelLeft className="h-5 w-5" />
+      </button>
 
       {/* Overlay for mobile */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/60 md:hidden"
-          onClick={onToggle}
-        />
-      )}
+      <div
+        onClick={onToggle}
+        aria-hidden={!open}
+        className={cn(
+          "fixed inset-0 z-40 bg-black/60 md:hidden transition-opacity duration-300",
+          open ? "opacity-100" : "opacity-0 pointer-events-none"
+        )}
+      />
 
       {/* Sidebar */}
       <div
         className={cn(
-          "h-screen flex flex-col bg-card border-r border-border transition-all duration-300 shrink-0",
-          "fixed md:relative z-50 md:z-auto",
-          open ? "w-64" : "w-0 overflow-hidden"
+          "h-[100dvh] w-64 flex flex-col bg-card border-r border-border shrink-0 z-50 md:z-auto",
+          "fixed md:relative will-change-transform",
+          "transition-[transform,margin-left] duration-300 ease-out",
+          open ? "translate-x-0 md:ml-0" : "-translate-x-full md:ml-[-16rem]"
         )}
       >
         {/* Header */}
@@ -99,7 +104,7 @@ const ConversationSidebar = ({
         </div>
 
         {/* Conversation list */}
-        <ScrollArea className="flex-1">
+        <ScrollArea className="flex-1 min-h-0">
           <div className="p-2 space-y-1">
             {conversations.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-8">
@@ -107,11 +112,19 @@ const ConversationSidebar = ({
               </p>
             )}
             {conversations.map((convo) => (
-              <button
+              <div
                 key={convo.id}
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelect(convo.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSelect(convo.id);
+                  }
+                }}
                 className={cn(
-                  "w-full group flex items-start gap-2 rounded-lg px-3 py-2.5 text-left transition-colors",
+                  "w-full group flex items-start gap-2 rounded-lg px-3 py-2.5 text-left cursor-pointer transition-colors duration-150 outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   convo.id === activeId
                     ? "bg-secondary text-foreground"
                     : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
@@ -125,18 +138,20 @@ const ConversationSidebar = ({
                   </p>
                 </div>
                 <button
+                  aria-label="Delete chat"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(convo.id);
                   }}
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/20 hover:text-destructive transition-all"
+                  className="p-1 rounded opacity-60 md:opacity-0 md:group-hover:opacity-100 hover:bg-destructive/20 hover:text-destructive transition-opacity duration-150"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
-              </button>
+              </div>
             ))}
           </div>
         </ScrollArea>
+
         {/* Clear all + Auth section */}
         <div className="border-t border-border">
           {conversations.length > 0 && (
