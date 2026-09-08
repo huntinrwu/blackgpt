@@ -232,7 +232,8 @@ const Index = () => {
   };
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-[100dvh] overflow-hidden bg-background">
+
       <ConversationSidebar
         conversations={conversations}
         activeId={activeId}
