@@ -158,7 +158,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
   };
 
   return (
-    <div className="border-t border-border bg-card">
+    <div>
       {/* Attachment previews */}
       {attachments.length > 0 && (
         <div className="flex gap-2 px-4 pt-3 overflow-x-auto">
