@@ -83,9 +83,25 @@ const Index = () => {
     if (isMobile) setSidebarOpen(false);
   }, [activeId, isMobile]);
 
+  // Keep pinned to the bottom while streaming, but never fight the user's scroll
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const stickToBottomRef = useRef(true);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    stickToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  }, []);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el || !stickToBottomRef.current) return;
+    const id = requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(id);
   }, [messages]);
+
 
   const getAuthHeaders = async () => {
     const { data: { session } } = await supabase.auth.getSession();
