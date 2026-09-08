@@ -130,9 +130,10 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
         {/* Action buttons */}
         {text && (
           <div className={cn(
-            "flex gap-1 mt-1 opacity-0 group-hover/msg:opacity-100 transition-opacity",
+            "flex gap-1 mt-1 opacity-60 md:opacity-0 md:group-hover/msg:opacity-100 transition-opacity duration-150",
             isUser ? "justify-end" : "justify-start"
           )}>
+
             <button
               onClick={handleCopyText}
               className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
