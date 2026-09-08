@@ -304,53 +304,60 @@ const Index = () => {
         </header>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-6 max-w-3xl mx-auto w-full">
-          {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-3">
-              <div className="text-5xl">🔥</div>
-              <h2 className="text-xl font-bold font-display text-gradient-gold">
-                Wassup, what you need?
-              </h2>
-              <p className="text-muted-foreground text-sm max-w-md">
-                Ask me anything and I'll put you on game, no cap. Straight talk, hood certified. 💯
-              </p>
-              {!user && (
-                <button
-                  onClick={() => navigate("/auth")}
-                  className="mt-2 text-xs text-primary hover:underline"
-                >
-                  Sign in to sync chats across devices 🔄
-                </button>
-              )}
-            </div>
-          )}
-          {messages.map((msg, i) => (
-            <ChatMessage
-              key={i}
-              role={msg.role}
-              content={msg.content}
-              isLast={i === messages.length - 1}
-              onRegenerate={msg.role === "assistant" ? () => handleRegenerate() : undefined}
-            />
-          ))}
-          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-            <div className="flex justify-start mb-4">
-              <div className="bg-secondary rounded-2xl rounded-bl-sm px-4 py-3">
-                <div className="flex gap-1">
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold" />
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.2s]" />
-                  <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.4s]" />
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]"
+        >
+          <div className="px-4 py-6 max-w-3xl mx-auto w-full min-h-full flex flex-col">
+            {messages.length === 0 && (
+              <div className="flex flex-col items-center justify-center flex-1 text-center gap-3 animate-fade-in">
+                <div className="text-5xl">🔥</div>
+                <h2 className="text-xl font-bold font-display text-gradient-gold">
+                  Wassup, what you need?
+                </h2>
+                <p className="text-muted-foreground text-sm max-w-md">
+                  Ask me anything and I'll put you on game, no cap. Straight talk, hood certified. 💯
+                </p>
+                {!user && (
+                  <button
+                    onClick={() => navigate("/auth")}
+                    className="mt-2 text-xs text-primary hover:underline"
+                  >
+                    Sign in to sync chats across devices 🔄
+                  </button>
+                )}
+              </div>
+            )}
+            {messages.map((msg, i) => (
+              <ChatMessage
+                key={i}
+                role={msg.role}
+                content={msg.content}
+                isLast={i === messages.length - 1}
+                onRegenerate={msg.role === "assistant" ? () => handleRegenerate() : undefined}
+              />
+            ))}
+            {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+              <div className="flex justify-start mb-4">
+                <div className="bg-secondary rounded-2xl rounded-bl-sm px-4 py-3">
+                  <div className="flex gap-1">
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.2s]" />
+                    <span className="w-2 h-2 rounded-full bg-primary animate-pulse-gold [animation-delay:0.4s]" />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
+            )}
+            <div ref={bottomRef} />
+          </div>
         </div>
 
         {/* Input */}
-        <div className="max-w-3xl mx-auto w-full">
+        <div className="max-w-3xl mx-auto w-full shrink-0">
           <ChatInput onSend={send} disabled={isLoading} onFileDrop={handleFileDrop} />
         </div>
+
 
         
       </div>
