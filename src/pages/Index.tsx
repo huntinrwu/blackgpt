@@ -354,9 +354,12 @@ const Index = () => {
         </div>
 
         {/* Input */}
-        <div className="max-w-3xl mx-auto w-full shrink-0">
-          <ChatInput onSend={send} disabled={isLoading} onFileDrop={handleFileDrop} />
+        <div className="shrink-0 border-t border-border bg-card">
+          <div className="max-w-3xl mx-auto w-full">
+            <ChatInput onSend={send} disabled={isLoading} onFileDrop={handleFileDrop} />
+          </div>
         </div>
+
 
 
         
