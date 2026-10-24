@@ -289,7 +289,7 @@ export function useConversations() {
     setTitle,
     persistMessages,
     isCloud,
-    ready: !authLoading && loaded && activeConversation !== null,
+    ready: !authLoading && loaded,
     clearAll,
   };
 }
