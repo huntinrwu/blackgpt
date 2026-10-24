@@ -5,12 +5,24 @@ import { useState, useCallback } from "react";
 import { Copy, Check, RefreshCw } from "lucide-react";
 import type { MsgContent } from "@/hooks/useConversations";
 import ImageLightbox from "@/components/ImageLightbox";
+import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    toast({ variant: "destructive", title: "Couldn't copy", description: "Try again or select the text to copy it." });
+    return false;
+  }
+}
 
 function CopyCodeBlock({ children, className }: { children: string; className?: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(children);
+  const handleCopy = useCallback(async () => {
+    if (!await copyText(children)) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [children]);
@@ -20,20 +32,21 @@ function CopyCodeBlock({ children, className }: { children: string; className?: 
   return (
     <div className="relative group my-2">
       {lang && (
-        <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-3 pt-2 pb-0 bg-background/50 rounded-t-lg border-b border-border/30">
+        <div className="text-[10px] uppercase text-muted-foreground pl-3 pr-12 pt-2 pb-0 bg-background/50 rounded-t-lg border-b border-border/30">
           {lang}
         </div>
       )}
-      <pre className={cn("bg-background/50 rounded-lg p-3 overflow-x-auto", lang && "rounded-t-none")}>
+      <pre className={cn("bg-background/50 rounded-lg p-3 pr-12 overflow-x-auto", lang && "rounded-t-none")}>
         <code className={className}>{children}</code>
       </pre>
-      <button
+      <Button variant="ghost" size="icon"
         onClick={handleCopy}
-        className="absolute top-2 right-2 p-1.5 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground opacity-70 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-150"
+        className="absolute top-1 right-1 h-8 w-8 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground"
         aria-label="Copy code"
+        title={copied ? "Copied" : "Copy code"}
       >
-        {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-      </button>
+        {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
+      </Button>
     </div>
   );
 }
@@ -43,6 +56,7 @@ interface ChatMessageProps {
   content: MsgContent;
   onRegenerate?: () => void;
   isLast?: boolean;
+  isStreaming?: boolean;
 }
 
 function extractText(content: MsgContent): string {
@@ -60,22 +74,22 @@ function extractImages(content: MsgContent): string[] {
     .map((p) => (p as { type: "image_url"; image_url: { url: string } }).image_url.url);
 }
 
-const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) => {
+const ChatMessage = ({ role, content, onRegenerate, isLast, isStreaming }: ChatMessageProps) => {
   const isUser = role === "user";
   const text = extractText(content);
   const images = extractImages(content);
   const [copied, setCopied] = useState(false);
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
 
-  const handleCopyText = useCallback(() => {
-    navigator.clipboard.writeText(text);
+  const handleCopyText = useCallback(async () => {
+    if (!await copyText(text)) return;
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, [text]);
 
   return (
     <div className={cn("flex w-full mb-4 group/msg animate-fade-in", isUser ? "justify-end" : "justify-start")}>
-      <div className="flex flex-col max-w-[80%]">
+      <div className="flex min-w-0 flex-col max-w-[95%] sm:max-w-[85%]">
         <div
           className={cn(
             "rounded-2xl px-4 py-3 text-sm leading-relaxed",
@@ -102,9 +116,9 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
           {/* Text content */}
           {text && (
             isUser ? (
-              <p className="whitespace-pre-wrap">{text}</p>
+              <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{text}</p>
             ) : (
-              <div className="prose prose-sm prose-invert max-w-none [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:bg-background/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_code]:text-primary [&_a]:text-primary [&_a]:underline">
+              <div className="prose prose-sm prose-invert min-w-0 max-w-none break-words [overflow-wrap:anywhere] [&_p]:mb-2 [&_p:last-child]:mb-0 [&_pre]:bg-background/50 [&_pre]:rounded-lg [&_pre]:p-3 [&_code]:text-primary [&_a]:text-primary [&_a]:underline">
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
@@ -118,6 +132,9 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
                     pre({ children }) {
                       return <>{children}</>;
                     },
+                    table({ children }) {
+                      return <div className="max-w-full overflow-x-auto"><table>{children}</table></div>;
+                    },
                   }}
                 >
                   {text}
@@ -130,27 +147,27 @@ const ChatMessage = ({ role, content, onRegenerate, isLast }: ChatMessageProps) 
         {/* Action buttons */}
         {text && (
           <div className={cn(
-            "flex gap-1 mt-1 opacity-60 md:opacity-0 md:group-hover/msg:opacity-100 transition-opacity duration-150",
+            "flex gap-1 mt-1 opacity-70 md:opacity-0 md:group-hover/msg:opacity-100 focus-within:opacity-100 transition-opacity duration-150",
             isUser ? "justify-end" : "justify-start"
           )}>
 
-            <button
+            <Button variant="ghost" size="icon"
               onClick={handleCopyText}
-              className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              className="h-9 w-9 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50"
               aria-label="Copy message"
               title="Copy text"
             >
-              {copied ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
-            </button>
+              {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
+            </Button>
             {!isUser && isLast && onRegenerate && (
-              <button
+              <Button variant="ghost" size="icon" disabled={isStreaming}
                 onClick={onRegenerate}
-                className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                className="h-9 w-9 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 aria-label="Regenerate response"
                 title="Regenerate"
               >
                 <RefreshCw size={14} />
-              </button>
+              </Button>
             )}
           </div>
         )}

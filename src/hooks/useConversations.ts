@@ -65,7 +65,7 @@ export function useConversations() {
     setLoaded(false);
     initDone.current = false;
 
-    if (isCloud) {
+    if (isCloud && user) {
       loadCloudConversations().then((convos) => {
         if (cancelled) return;
         setConversations(convos);
@@ -77,7 +77,7 @@ export function useConversations() {
           migrationDone.current = true;
           const localConvos = loadLocal();
           if (localConvos.length > 0) {
-            migrateLocalToCloud(localConvos, user!.id).then((migrated) => {
+            migrateLocalToCloud(localConvos, user.id).then((migrated) => {
               if (migrated.length > 0 && !cancelled) {
                 setConversations((prev) => [...migrated, ...prev]);
                 localStorage.removeItem(STORAGE_KEY);
@@ -289,6 +289,7 @@ export function useConversations() {
     setTitle,
     persistMessages,
     isCloud,
+    ready: !authLoading && loaded,
     clearAll,
   };
 }
