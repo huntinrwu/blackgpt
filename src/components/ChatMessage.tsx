@@ -43,7 +43,6 @@ function CopyCodeBlock({ children, className }: { children: string; className?: 
         onClick={handleCopy}
         className="absolute top-1 right-1 h-8 w-8 rounded-md bg-muted/80 hover:bg-muted text-muted-foreground hover:text-foreground"
         aria-label="Copy code"
-      >
         title={copied ? "Copied" : "Copy code"}
       >
         {copied ? <Check size={14} className="text-primary" /> : <Copy size={14} />}
