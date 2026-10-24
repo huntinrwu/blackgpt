@@ -8,9 +8,10 @@ import ConversationSidebar from "@/components/ConversationSidebar";
 import { useConversations, Msg, MsgContent } from "@/hooks/useConversations";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { LogIn, LogOut, User } from "lucide-react";
+import { LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAttribution } from "@/lib/analytics";
+import { regenerationHistory } from "@/lib/chat-interactions";
 
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/blackgpt-chat`;
@@ -27,7 +28,6 @@ const Index = () => {
     ensureConversation,
     setTitle,
     persistMessages,
-    isCloud,
     clearAll,
   } = useConversations();
 
@@ -38,7 +38,7 @@ const Index = () => {
   const [isDragging, setIsDragging] = useState(false);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const sendingRef = useRef(false);
   const fileProcessorRef = useRef<((files: FileList) => Promise<void>) | null>(null);
   const dragCounterRef = useRef(0);
 
@@ -102,6 +102,12 @@ const Index = () => {
     return () => cancelAnimationFrame(id);
   }, [messages]);
 
+  useEffect(() => {
+    stickToBottomRef.current = true;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [activeId]);
+
 
   const getAuthHeaders = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -112,18 +118,23 @@ const Index = () => {
     };
   };
 
-  const send = async (input: MsgContent) => {
-    const convId = await ensureConversation();
-    const userMsg: Msg = { role: "user", content: input };
-    const allMessages = [...messages, userMsg];
-    const isFirstMessage = messages.length === 0;
-    setMessages(allMessages, convId);
+  const send = async (input: MsgContent, history: Msg[] = messages) => {
+    if (sendingRef.current) return;
+    sendingRef.current = true;
     setIsLoading(true);
-
+    stickToBottomRef.current = true;
+    let convId: string | null = null;
+    let allMessages: Msg[] = [];
+    const isFirstMessage = history.length === 0;
     let assistantSoFar = "";
-    const headers = await getAuthHeaders();
 
     try {
+    convId = await ensureConversation();
+    const targetId = convId;
+    const userMsg: Msg = { role: "user", content: input };
+    allMessages = [...history, userMsg];
+    setMessages(allMessages, convId);
+    const headers = await getAuthHeaders();
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers,
@@ -170,7 +181,7 @@ const Index = () => {
                   );
                 }
                 return [...prev, { role: "assistant", content: snapshot }];
-              }, convId);
+              }, targetId);
             }
           } catch {
             textBuffer = line + "\n" + textBuffer;
@@ -187,16 +198,17 @@ const Index = () => {
       await persistMessages(convId, finalMessages);
     } catch (e) {
       console.error(e);
-      setMessages((prev) => [
+      if (convId) setMessages((prev) => [
         ...prev,
         { role: "assistant", content: "Aye bruh, somethin went wrong. Try again. 💀" },
       ], convId);
     } finally {
+      sendingRef.current = false;
       setIsLoading(false);
     }
 
     // Generate a creative hood title after the first exchange
-    if (isFirstMessage) {
+    if (isFirstMessage && convId && assistantSoFar) {
       try {
         const titleHeaders = await getAuthHeaders();
         const titleResp = await fetch(CHAT_URL, {
@@ -215,16 +227,11 @@ const Index = () => {
   };
 
   const handleRegenerate = async () => {
-    // Remove last assistant message and resend the last user message
-    const lastUserIdx = [...messages].reverse().findIndex((m) => m.role === "user");
-    if (lastUserIdx === -1) return;
-    const idx = messages.length - 1 - lastUserIdx;
-    const userMsg = messages[idx];
-    // Remove everything after (and including) the last assistant response
-    const trimmed = messages.slice(0, idx);
-    setMessages(trimmed);
-    // Re-send
-    await send(userMsg.content);
+    if (sendingRef.current) return;
+    const history = regenerationHistory(messages);
+    const prompt = history?.[history.length - 1];
+    if (!history || !prompt) return;
+    await send(prompt.content, history.slice(0, -1));
   };
 
   const handleNewChat = async () => {
@@ -246,6 +253,7 @@ const Index = () => {
         user={user}
         onLogin={() => navigate("/auth")}
         onLogout={signOut}
+        busy={isLoading}
       />
 
       <div
@@ -266,12 +274,11 @@ const Index = () => {
           </div>
         )}
         {/* Header */}
-        <header className="flex items-center justify-between py-5 px-4 border-b border-border bg-card">
-          <div className="flex-1" />
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center py-4 px-4 border-b border-border bg-card">
+          <div />
           <h1 className="text-2xl font-bold font-display">
             <span className="text-gradient-gold">Black</span>
             <span className="text-foreground">GPT</span>
-            <span className="text-muted-foreground text-sm font-normal ml-2">v1.0</span>
           </h1>
           <div className="flex-1 flex justify-end">
             {user ? (
@@ -285,6 +292,7 @@ const Index = () => {
                   className="h-8 w-8 text-muted-foreground hover:text-foreground"
                   onClick={signOut}
                   title="Sign out"
+                  aria-label="Sign out"
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
@@ -295,6 +303,7 @@ const Index = () => {
                 size="sm"
                 className="text-muted-foreground hover:text-primary gap-1.5"
                 onClick={() => navigate("/auth")}
+                aria-label="Sign in"
               >
                 <LogIn className="h-4 w-4" />
                 <span className="hidden sm:inline">Sign In</span>
@@ -320,12 +329,12 @@ const Index = () => {
                   Ask me anything and I'll put you on game, no cap. Straight talk, hood certified. 💯
                 </p>
                 {!user && (
-                  <button
+                  <Button variant="link" size="sm"
                     onClick={() => navigate("/auth")}
                     className="mt-2 text-xs text-primary hover:underline"
                   >
                     Sign in to sync chats across devices 🔄
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -336,6 +345,7 @@ const Index = () => {
                 content={msg.content}
                 isLast={i === messages.length - 1}
                 onRegenerate={msg.role === "assistant" ? () => handleRegenerate() : undefined}
+                isStreaming={isLoading}
               />
             ))}
             {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
@@ -349,14 +359,13 @@ const Index = () => {
                 </div>
               </div>
             )}
-            <div ref={bottomRef} />
           </div>
         </div>
 
         {/* Input */}
         <div className="shrink-0 border-t border-border bg-card">
           <div className="max-w-3xl mx-auto w-full">
-            <ChatInput onSend={send} disabled={isLoading} onFileDrop={handleFileDrop} />
+            <ChatInput key={activeId ?? "new-chat"} onSend={(input) => void send(input)} disabled={isLoading} onFileDrop={handleFileDrop} />
           </div>
         </div>
 

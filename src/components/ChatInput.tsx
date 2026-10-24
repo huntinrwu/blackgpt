@@ -7,6 +7,7 @@ import WebcamCapture from "@/components/WebcamCapture";
 import ImageLightbox from "@/components/ImageLightbox";
 import VoiceAgent from "@/components/VoiceAgent";
 import type { MsgContent } from "@/hooks/useConversations";
+import { shouldSubmitOnEnter } from "@/lib/chat-interactions";
 
 interface ChatInputProps {
   onSend: (content: MsgContent, files?: File[]) => void;
@@ -101,7 +102,8 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey && !isMobile) {
+    const touchDevice = isMobile || window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0;
+    if (shouldSubmitOnEnter(e.key, e.shiftKey, e.nativeEvent.isComposing, touchDevice)) {
       e.preventDefault();
       handleSubmit();
     }
@@ -165,27 +167,30 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           {attachments.map((att, i) => (
             <div key={i} className="relative shrink-0 rounded-lg overflow-hidden border border-border">
               {att.preview ? (
-                <div className="w-16 h-16 cursor-pointer" onClick={() => setLightboxSrc(att.preview!)}>
+                <Button variant="ghost" className="w-16 h-16 p-0" aria-label={`View ${att.name}`} onClick={() => setLightboxSrc(att.preview ?? null)}>
                   <img src={att.preview} alt="upload" className="w-full h-full object-cover" />
-                </div>
+                </Button>
               ) : (
                 <div className="w-auto h-10 px-3 flex items-center gap-1.5 bg-muted/50">
                   <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                   <span className="text-xs text-foreground truncate max-w-[100px]">{att.name}</span>
                 </div>
               )}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`Remove ${att.name}`}
                 onClick={(e) => { e.stopPropagation(); removeAttachment(i); }}
-                className="absolute top-0 right-0 bg-background/80 rounded-bl-lg p-0.5"
+                className="absolute top-0 right-0 bg-background/80 rounded-bl-lg h-7 w-7 p-0.5"
               >
                 <X className="w-3 h-3 text-foreground" />
-              </button>
+              </Button>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex items-end gap-2 p-4">
+      <div className="flex flex-wrap items-end gap-2 p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -215,6 +220,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           disabled={disabled}
           type="button"
           title="Upload file or image"
+          aria-label="Upload file or image"
         >
           <Paperclip className="h-5 w-5 text-muted-foreground" />
         </Button>
@@ -228,6 +234,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           disabled={disabled}
           type="button"
           title="Take a photo"
+          aria-label="Take a photo"
         >
           <Camera className="h-5 w-5 text-muted-foreground" />
         </Button>
@@ -244,6 +251,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
 
         <textarea
           ref={textareaRef}
+          aria-label="Message BlackGPT"
           value={input + (interimText ? (input ? " " : "") + interimText : "")}
           onChange={(e) => {
             // Strip interim text portion when user types
@@ -253,7 +261,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           placeholder={isListening ? "Listening... 🎙️" : "Say somethin... or drop a file 📎"}
           disabled={disabled}
           rows={1}
-          className="flex-1 resize-none bg-secondary text-foreground rounded-xl px-4 py-3 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
+          className="order-first w-full min-w-0 resize-none bg-secondary text-foreground rounded-xl px-4 py-3 text-base sm:text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
         />
 
         {/* Mic button */}
@@ -261,11 +269,12 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className={`rounded-xl h-11 w-11 shrink-0 ${isListening ? "text-red-500 animate-pulse" : ""}`}
+            className={`rounded-xl h-11 w-11 shrink-0 ${isListening ? "text-destructive animate-pulse" : ""}`}
             onClick={toggleMic}
             disabled={disabled}
             type="button"
             title={isListening ? "Stop listening" : "Voice input"}
+            aria-label={isListening ? "Stop listening" : "Voice input"}
           >
             {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5 text-muted-foreground" />}
           </Button>
@@ -278,7 +287,9 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           disabled={(!input.trim() && attachments.length === 0) || disabled}
           size="icon"
           variant="outline"
-          className="rounded-xl h-11 w-11 shrink-0"
+          className="rounded-xl h-11 w-11 shrink-0 ml-auto"
+          aria-label="Send message"
+          title="Send message"
         >
           <Send className="h-4 w-4" />
         </Button>
