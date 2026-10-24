@@ -29,6 +29,7 @@ const Index = () => {
     setTitle,
     persistMessages,
     clearAll,
+    ready,
   } = useConversations();
 
   const { user, signOut } = useAuth();
@@ -119,7 +120,7 @@ const Index = () => {
   };
 
   const send = async (input: MsgContent, history: Msg[] = messages) => {
-    if (sendingRef.current) return;
+    if (!ready || sendingRef.current) return;
     sendingRef.current = true;
     setIsLoading(true);
     stickToBottomRef.current = true;
@@ -129,12 +130,12 @@ const Index = () => {
     let assistantSoFar = "";
 
     try {
-    convId = await ensureConversation();
-    const targetId = convId;
-    const userMsg: Msg = { role: "user", content: input };
-    allMessages = [...history, userMsg];
-    setMessages(allMessages, convId);
-    const headers = await getAuthHeaders();
+      convId = await ensureConversation();
+      const targetId = convId;
+      const userMsg: Msg = { role: "user", content: input };
+      allMessages = [...history, userMsg];
+      setMessages(allMessages, convId);
+      const headers = await getAuthHeaders();
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers,
@@ -253,7 +254,7 @@ const Index = () => {
         user={user}
         onLogin={() => navigate("/auth")}
         onLogout={signOut}
-        busy={isLoading}
+        busy={isLoading || !ready}
       />
 
       <div
@@ -293,6 +294,7 @@ const Index = () => {
                   onClick={signOut}
                   title="Sign out"
                   aria-label="Sign out"
+                  disabled={isLoading}
                 >
                   <LogOut className="h-4 w-4" />
                 </Button>
@@ -365,7 +367,7 @@ const Index = () => {
         {/* Input */}
         <div className="shrink-0 border-t border-border bg-card">
           <div className="max-w-3xl mx-auto w-full">
-            <ChatInput key={activeId ?? "new-chat"} onSend={(input) => void send(input)} disabled={isLoading} onFileDrop={handleFileDrop} />
+            <ChatInput key={activeId ?? "new-chat"} onSend={(input) => void send(input)} disabled={isLoading || !ready} onFileDrop={handleFileDrop} />
           </div>
         </div>
 
