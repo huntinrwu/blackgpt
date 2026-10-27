@@ -1,3 +1,4 @@
+import { extractDocumentText, MAX_DOC_CHARS } from "@/lib/document-text";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Paperclip, FileText, X, Camera, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +18,7 @@ interface ChatInputProps {
 
 const MAX_IMAGE_SIZE = 4 * 1024 * 1024; // 4MB
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
-const ACCEPTED_FILE_TYPES = "image/*,.pdf,.txt,.md,.csv,.doc,.docx";
+const ACCEPTED_FILE_TYPES = "image/*,.pdf,.txt,.md,.csv,.json,.docx";
 
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -25,15 +26,6 @@ function fileToBase64(file: File): Promise<string> {
     reader.onload = () => resolve(reader.result as string);
     reader.onerror = reject;
     reader.readAsDataURL(file);
-  });
-}
-
-function readTextFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsText(file);
   });
 }
 
@@ -84,6 +76,10 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
       }
     }
 
+    // Keep combined attachments under the server's 32KB per-message limit
+    const limit = MAX_DOC_CHARS + 6_000;
+    if (fullText.length > limit) fullText = fullText.slice(0, limit) + "\n\n[Attachments truncated.]";
+
     if (images.length > 0) {
       const parts: MsgContent = [];
       if (fullText) parts.push({ type: "text", text: fullText });
@@ -123,14 +119,7 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
           alert("File too large (max 20MB)");
           continue;
         }
-        let textContent = "";
-        if (file.type === "text/plain" || file.name.endsWith(".txt") || file.name.endsWith(".md") || file.name.endsWith(".csv")) {
-          textContent = await readTextFile(file);
-        } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-          textContent = `[PDF file: ${file.name} — PDF text extraction happens server-side. File attached for context.]`;
-        } else {
-          textContent = `[Document: ${file.name} — Content attached for context.]`;
-        }
+        const textContent = await extractDocumentText(file);
         setAttachments((prev) => [...prev, { name: file.name, type: file.type || "application/octet-stream", textContent, file }]);
       }
     }
