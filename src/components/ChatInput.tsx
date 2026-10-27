@@ -1,3 +1,4 @@
+import { extractDocumentText, MAX_DOC_CHARS } from "@/lib/document-text";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Send, Paperclip, FileText, X, Camera, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,10 @@ const ChatInput = ({ onSend, disabled, onFileDrop }: ChatInputProps) => {
         fullText += `\n\n📎 **${doc.name}:**\n${doc.textContent}`;
       }
     }
+
+    // Keep combined attachments under the server's 32KB per-message limit
+    const limit = MAX_DOC_CHARS + 6_000;
+    if (fullText.length > limit) fullText = fullText.slice(0, limit) + "\n\n[Attachments truncated.]";
 
     if (images.length > 0) {
       const parts: MsgContent = [];
