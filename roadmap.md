@@ -7,4 +7,4 @@
 # App download
 - [x] Add a visible Download App button and device-specific installation instructions.
 - [x] Keep home-screen installation manifest-only, with a published link for computer-to-phone sharing.
-- [ ] Test device detection and verify the dialog on phones and computers.
+- [x] Test device detection and verify the dialog on phones and computers.
