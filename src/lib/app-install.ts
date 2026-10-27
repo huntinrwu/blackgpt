@@ -30,7 +30,6 @@ export function detectInstallEnvironment(userAgent: string, platform: string, to
 export function isRunningAsApp(displayModeStandalone: boolean, iosStandalone?: boolean) {
   return displayModeStandalone || iosStandalone === true;
 }
-}
 
 export function installSteps(device: InstallDevice, browser: InstallBrowser): string[] {
   if (device === "iphone" || device === "ipad") return [
