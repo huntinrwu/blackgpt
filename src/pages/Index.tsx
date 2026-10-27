@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import ConversationSidebar from "@/components/ConversationSidebar";
+import DownloadApp from "@/components/DownloadApp";
 
 import { useConversations, Msg, MsgContent } from "@/hooks/useConversations";
 import { useAuth } from "@/hooks/useAuth";
@@ -368,6 +369,9 @@ const Index = () => {
         <div className="shrink-0 border-t border-border bg-card">
           <div className="max-w-3xl mx-auto w-full">
             <ChatInput key={activeId ?? "new-chat"} onSend={(input) => void send(input)} disabled={isLoading || !ready} onFileDrop={handleFileDrop} />
+            <div className="flex justify-center pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+              <DownloadApp />
+            </div>
           </div>
         </div>
 
