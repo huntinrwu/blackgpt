@@ -1,18 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Copy, Download, Monitor, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { APP_INSTALL_URL, detectInstallEnvironment, installDevices, installSteps, type InstallDevice } from "@/lib/app-install";
+import { APP_INSTALL_URL, detectInstallEnvironment, installDevices, installSteps, isRunningAsApp, type InstallDevice } from "@/lib/app-install";
 
 export default function DownloadApp() {
   const [environment] = useState(() => detectInstallEnvironment(navigator.userAgent, navigator.platform, navigator.maxTouchPoints));
   const [device, setDevice] = useState<InstallDevice>(environment.device);
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState(false);
-  const [installed] = useState(() => window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true);
+  const [installed, setInstalled] = useState(() => isRunningAsApp(window.matchMedia("(display-mode: standalone)").matches, (navigator as Navigator & { standalone?: boolean }).standalone));
+  useEffect(() => {
+    const standalone = window.matchMedia("(display-mode: standalone)");
+    const update = () => setInstalled(isRunningAsApp(standalone.matches, (navigator as Navigator & { standalone?: boolean }).standalone));
+    standalone.addEventListener("change", update);
+    return () => standalone.removeEventListener("change", update);
+  }, []);
   const phone = device === "iphone" || device === "ipad" || device === "android";
   const steps = installSteps(device, device === environment.device ? environment.browser : "other");
+
+  if (installed) return null;
 
   const copyLink = async () => {
     try {
@@ -41,7 +49,6 @@ export default function DownloadApp() {
             Add BlackGPT to your {phone ? "home screen" : "computer"} straight from your browser. No app store needed.
           </DialogDescription>
         </DialogHeader>
-        {installed && <p role="status" className="flex items-center gap-2 text-sm text-primary"><Check className="h-4 w-4 shrink-0" />You’re already using the installed app.</p>}
         <div className="space-y-2">
           <label id="install-device-label" className="flex items-center gap-2 text-sm font-medium">
             {phone ? <Smartphone className="h-4 w-4 text-primary" /> : <Monitor className="h-4 w-4 text-primary" />} Your device

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectInstallEnvironment } from "./app-install";
+import { detectInstallEnvironment, isRunningAsApp } from "./app-install";
 
 describe("app installation device detection", () => {
   it("detects iPhone Safari", () => {
@@ -19,5 +19,18 @@ describe("app installation device detection", () => {
   });
   it("offers a fallback on unknown computers", () => {
     expect(detectInstallEnvironment("Firefox/132.0", "Linux x86_64", 0)).toEqual({ device: "other", browser: "other" });
+  });
+});
+
+describe("running as an installed app", () => {
+  it("hides the download button when the display mode is standalone", () => {
+    expect(isRunningAsApp(true, false)).toBe(true);
+  });
+  it("detects the iOS installed app via the standalone navigator flag", () => {
+    expect(isRunningAsApp(false, true)).toBe(true);
+  });
+  it("keeps the download button visible in a normal browser tab", () => {
+    expect(isRunningAsApp(false, false)).toBe(false);
+    expect(isRunningAsApp(false, undefined)).toBe(false);
   });
 });
