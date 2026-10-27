@@ -20,6 +20,8 @@ export default function DownloadApp() {
   const phone = device === "iphone" || device === "ipad" || device === "android";
   const steps = installSteps(device, device === environment.device ? environment.browser : "other");
 
+  if (installed) return null;
+
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(APP_INSTALL_URL);
@@ -47,7 +49,6 @@ export default function DownloadApp() {
             Add BlackGPT to your {phone ? "home screen" : "computer"} straight from your browser. No app store needed.
           </DialogDescription>
         </DialogHeader>
-        {installed && <p role="status" className="flex items-center gap-2 text-sm text-primary"><Check className="h-4 w-4 shrink-0" />You’re already using the installed app.</p>}
         <div className="space-y-2">
           <label id="install-device-label" className="flex items-center gap-2 text-sm font-medium">
             {phone ? <Smartphone className="h-4 w-4 text-primary" /> : <Monitor className="h-4 w-4 text-primary" />} Your device
