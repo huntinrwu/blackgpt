@@ -26,6 +26,12 @@ export function detectInstallEnvironment(userAgent: string, platform: string, to
   return { device, browser };
 }
 
+// True when the app is running as an installed app (not a browser tab), so the Download App button can hide itself.
+export function isRunningAsApp(displayModeStandalone: boolean, iosStandalone?: boolean) {
+  return displayModeStandalone || iosStandalone === true;
+}
+}
+
 export function installSteps(device: InstallDevice, browser: InstallBrowser): string[] {
   if (device === "iphone" || device === "ipad") return [
     "Open blackgpt.lovable.app in Safari.",
